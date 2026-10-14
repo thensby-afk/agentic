@@ -1,0 +1,14 @@
+{
+  "name": "html-security-verification",
+  "version": "1.0.0",
+  "description": "Playwright security and regression verification for remediated HTML tools",
+  "private": true,
+  "scripts": {
+    "verify": "node verify-remediated.js",
+    "verify:file": "node verify-remediated.js",
+    "install-browsers": "npx playwright install chromium"
+  },
+  "dependencies": {
+    "playwright": "^1.49.0"
+  }
+}

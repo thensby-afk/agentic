@@ -1,0 +1,4462 @@
+<!doctype html>
+<html lang="en-GB">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+
+<!-- ═══════════════════════════════════════════════════════════════════════════
+     CONTENT SECURITY POLICY  (defence in depth — see AUDIT NOTES below)
+
+     default-src 'none'    nothing may be loaded from anywhere by default
+     connect-src 'none'    no fetch / XHR / WebSocket / EventSource is possible
+     script-src            inline only; no remote or dynamically-created scripts
+     style-src             inline only
+     img-src data:         the favicon is an inline data: URI; no remote images
+     form-action 'none'    no form may submit anywhere
+     base-uri 'none'       <base> cannot be injected to re-target relative URLs
+
+     A pen tester can verify "no outbound calls" two ways: statically (search the
+     file for fetch/XMLHttpRequest/WebSocket/src=http — there are none) and at
+     run time (this policy causes the browser itself to block any attempt).
+
+     KNOWN CAVEAT: frame-ancestors is not honoured in a <meta> CSP; it must be
+     set as an HTTP header if this file is ever served rather than opened locally.
+     ═══════════════════════════════════════════════════════════════════════════ -->
+<meta http-equiv="Content-Security-Policy"
+      content="default-src 'none'; script-src 'unsafe-inline'; style-src 'unsafe-inline'; img-src data:; connect-src 'none'; form-action 'none'; base-uri 'none'">
+<meta name="referrer" content="no-referrer">
+
+<title>SSB RAID Dashboard v2.3</title>
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect x='5' y='5' width='90' height='90' rx='18' fill='%23ffffff' stroke='%230f4e3e' stroke-width='10'/><path d='M25 51 L43 71 L77 31' fill='none' stroke='%23008542' stroke-width='12' stroke-linecap='round' stroke-linejoin='round'/></svg>">
+
+<!-- ═══════════════════════════════════════════════════════════════════════════
+     SSB RAID DASHBOARD — v2
+     United Utilities · Simpler Smarter Better programme
+
+     ── WHAT THIS FILE IS ────────────────────────────────────────────────────────
+     A single, self-contained HTML file. Open it in a browser; drop in the SSB
+     Programme RAID Log workbook; the dashboard populates itself. Nothing is
+     installed, nothing is sent anywhere, and no RAID content is stored in
+     this file.
+
+     ── AUDIT NOTES (for the security review and penetration test) ──────────────
+
+     1. NO THIRD-PARTY CODE.
+        Zero libraries, frameworks, polyfills or vendored snippets. Every line
+        below was written for this file. The only non-application code paths are
+        browser-native APIs: DecompressionStream, TextDecoder, FileReader, Blob.
+
+     2. NO NETWORK ACTIVITY, INBOUND OR OUTBOUND.
+        There is no fetch, XMLHttpRequest, WebSocket, EventSource, Beacon,
+        remote script or stylesheet tags, remote fonts, remote images
+        or tracking pixel anywhere in this file. The CSP above enforces this
+        even if code were later added. All fonts are OS-native system fonts.
+
+     3. NO RAID DATA IS EMBEDDED IN THIS FILE.
+        The single block of baked-in content is the script element with
+        id="ssb-file-structure" and type="application/json" further down.
+        It holds only:
+          (a) sheet names, first data rows and column definitions; and
+          (b) the Data Validation reference lists (big bet and initiative names).
+        It contains no risks, issues, assumptions or dependencies. That script
+        tag has type="application/json", so the browser never executes it; it is
+        read with JSON.parse and is inert data.
+
+     4. DATA IS HELD IN MEMORY ONLY — NOTHING IS PERSISTED.
+        No cookies, no localStorage, no sessionStorage, no IndexedDB, no cache
+        writes. Uploaded RAID data lives in one JavaScript variable and is gone
+        the moment the tab closes or "Clear data" is pressed. Reloading the page
+        deliberately requires re-uploading the workbook. This is by design: the
+        dashboard leaves no RAID content at rest on the machine that opened it.
+
+     5. NO DYNAMIC CODE EXECUTION.
+        No eval, no new Function, no setTimeout/setInterval with a string
+        argument, no document.write, no javascript: URLs, no inline event
+        handler attributes in the markup.
+
+     6. NO HTML IS EVER BUILT FROM STRINGS.
+        This is the main hardening change from v1, which assembled markup with
+        innerHTML and hand-escaped values. v2 assigns innerHTML exactly nowhere.
+        Every element is created with document.createElement and every value
+        from the workbook is written with textContent, so spreadsheet content is
+        never parsed as markup and cross-site scripting through a malicious
+        workbook is structurally impossible rather than merely escaped against.
+        Icons come from a trusted, static <symbol> sprite in the markup and are
+        referenced by <use>, never generated from data.
+
+     7. UNTRUSTED INPUT IS TREATED AS UNTRUSTED.
+        The uploaded workbook is the only input and is assumed hostile. The ZIP
+        and XML readers are bounded (see SSB.limits) against zip bombs,
+        oversized entries, entry-count floods, deeply repeated cells and runaway
+        strings. Cell values are length-capped. ZIP entry names are neither used
+        as paths nor written to disk. Failures produce a message, never a throw
+        into an unknown state.
+
+     8. NO USER, ACCOUNT, OWNER OR NAME DATA IS DISPLAYED.
+        Owner and lead columns are intentionally not read from the workbook.
+
+     9. HOW TO VERIFY THE BUILD.
+        - Structure: everything baked in is in the one JSON block (point 3).
+        - Egress: open DevTools, load a workbook, confirm the Network panel
+          records nothing.
+        - Integrity: hash the file (sha256) and record it alongside the review.
+        - A NOTE ON GREPPING. Names such as innerHTML, eval, fetch, DOMParser
+          and localStorage do occur in this file — but only in commentary like
+          this block, and in the wording the Data contract view puts on screen.
+          Strip the comments, or search within the script blocks alone, and
+          there are no occurrences in executable code. Any raw text search will
+          otherwise return these notes describing the absence of the very thing
+          being searched for.
+
+     ── LAYOUT OF THE CODE BELOW ─────────────────────────────────────────────────
+        <style>                    design tokens and layout
+        markup                     static shell, icon sprite, upload dialog
+        #ssb-file-structure        the baked-in structure (inert JSON)
+        SSB.limits                 all input bounds in one place
+        SSB.zip                    bounded ZIP central-directory reader
+        SSB.xlsx                   sheet / shared-string / style reader
+        SSB.normalise              workbook rows -> RAID model + load report
+        SSB.dom                    element builders (no innerHTML)
+        SSB.app                    state, filters, views, rendering, CSV export
+     ═══════════════════════════════════════════════════════════════════════════ -->
+
+<style>
+/* ─── design tokens — UU–SSB design system ─────────────────────────────── */
+:root {
+  --ssb-green:#008542; --ssb-deep:#0f4e3e; --ssb-teal:#024e43; --ssb-lime:#b9dd78;
+  --green:#1b6e3e; --green-2:#145430; --green-mid:#2d8a55;
+  --green-bg:#e2f4e9; --green-light:#c8ecd3;
+  --rag-g:#00A878; --rag-g-bg:#e6f7f2;
+  --amber:#7a4000; --amber-bg:#fff0e0; --rag-amber:#FF6B35;
+  --red:#922020; --red-bg:#fdeaea; --red-strong:#d32f2f;
+  --bg:#f0f4f1; --surface:#fff; --surface-2:#eaf2ec; --surface-3:#d6e8da;
+  --tint:#e8f5f1; --tip:#fff8e1;
+  --text:#0c1f13; --text-2:#345c3e; --text-3:#7fa888;
+  --border:rgba(30,90,50,.09); --border-2:rgba(30,90,50,.18);
+  --sh:0 1px 3px rgba(0,0,0,.05),0 4px 16px rgba(0,0,0,.06);
+  --sh-2:0 4px 12px rgba(0,0,0,.08),0 16px 48px rgba(0,0,0,.1);
+  --f:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;
+  --mono:'SFMono-Regular','Consolas','Liberation Mono',monospace;
+  --r:8px; --r-2:14px;
+}
+
+.ssb{font-family:"Helvetica Neue",Helvetica,Arial,"Segoe UI",system-ui,sans-serif;
+  --ssb-heading:#008542; --ssb-tick:#008542; --ssb-frame:#0f4e3e; --ssb-word:#0f4e3e; display:block;height:auto}
+.ssb--dark{--ssb-heading:#b9dd78;--ssb-tick:#b9dd78;--ssb-frame:#fff;--ssb-word:#fff}
+.ssb-heading{fill:var(--ssb-heading)} .ssb-tick{stroke:var(--ssb-tick)}
+.ssb-frame{stroke:var(--ssb-frame)}   .ssb-word{fill:var(--ssb-word)}
+
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:var(--f);background:var(--bg);color:var(--text);font-size:14px;line-height:1.5;-webkit-text-size-adjust:100%}
+button{font-family:var(--f);color:inherit}
+:focus-visible{outline:2px solid var(--ssb-green);outline-offset:2px}
+.sprite{position:absolute;width:0;height:0;overflow:hidden}
+
+/* ─── shell ────────────────────────────────────────────────────────────── */
+.app{display:grid;grid-template-columns:200px 1fr;min-height:100vh}
+.side{background:#0d2416;position:sticky;top:0;height:100vh;display:flex;flex-direction:column;
+  overflow-y:auto;border-right:1px solid rgba(255,255,255,.05)}
+.side-logo{padding:18px 16px 14px;border-bottom:1px solid rgba(255,255,255,.07)}
+.side-label{margin-top:10px;padding-top:10px;border-top:1px solid rgba(255,255,255,.07);
+  font-size:9px;font-weight:700;letter-spacing:.18em;text-transform:uppercase;color:rgba(255,255,255,.45)}
+.side-items{padding:10px 8px;flex:1}
+.side-sep{font-size:8px;font-weight:700;letter-spacing:.15em;text-transform:uppercase;
+  color:rgba(255,255,255,.18);padding:10px 11px 3px}
+.nav-item{display:flex;align-items:center;gap:8px;width:100%;padding:7px 11px;border-radius:6px;
+  color:rgba(255,255,255,.45);font-size:11.5px;font-weight:500;text-align:left;
+  border:1px solid transparent;background:none;cursor:pointer;transition:all .12s;margin-bottom:1px}
+.nav-item:hover:not(:disabled){background:rgba(255,255,255,.06);color:rgba(255,255,255,.8)}
+.nav-item.active{background:rgba(43,130,75,.25);color:#72d48f;border-color:rgba(43,130,75,.25)}
+.nav-item:disabled{opacity:.3;cursor:default}
+.nav-item .n{margin-left:auto;font-family:var(--mono);font-size:9.5px;opacity:.75}
+.nav-item svg{flex:none}
+.side-foot{padding:12px 16px;border-top:1px solid rgba(255,255,255,.06);
+  font-size:9px;color:rgba(255,255,255,.2);font-family:var(--mono);line-height:1.6}
+.main{overflow-x:hidden;min-width:0}
+
+.topbar{background:#0d2416;padding:22px 32px 20px;border-bottom:1px solid rgba(255,255,255,.06);
+  display:flex;flex-wrap:wrap;gap:20px;align-items:flex-start;justify-content:space-between}
+.topbar .eyebrow{font-size:10px;letter-spacing:.2em;text-transform:uppercase;color:var(--ssb-lime);font-weight:700;margin-bottom:8px}
+.topbar h1{font-size:26px;font-weight:800;color:#fff;letter-spacing:-.02em;line-height:1.1}
+.topbar .sub{font-size:12.5px;color:rgba(255,255,255,.55);margin-top:6px;max-width:62ch}
+.stamp-wrap{display:flex;flex-wrap:wrap;gap:10px;align-items:center}
+.stamp{border:1px solid rgba(255,255,255,.16);background:rgba(255,255,255,.05);border-radius:var(--r);
+  padding:9px 13px;line-height:1.45}
+.stamp b{display:block;font-size:11.5px;font-weight:700;color:#fff}
+.stamp span{font-size:10px;color:rgba(255,255,255,.45);font-family:var(--mono)}
+.wrap{padding:22px 32px 56px;max-width:1680px}
+.hidden{display:none!important}
+
+/* ─── components ───────────────────────────────────────────────────────── */
+.btn{display:inline-flex;align-items:center;gap:6px;padding:8px 16px;border-radius:var(--r);
+  font-size:12px;font-weight:600;cursor:pointer;border:none;transition:all .15s;white-space:nowrap}
+.btn-primary{background:var(--green);color:#fff;box-shadow:0 2px 6px rgba(27,110,62,.3)}
+.btn-primary:hover{background:var(--green-2);box-shadow:0 3px 10px rgba(27,110,62,.4)}
+.btn-ghost{background:var(--surface);color:var(--text-2);border:1.5px solid var(--border-2)}
+.btn-ghost:hover{background:var(--surface-2)}
+.btn-sm{padding:5px 12px;font-size:11px}
+.btn-onDark{background:rgba(255,255,255,.1);color:#fff;border:1.5px solid rgba(255,255,255,.28)}
+.btn-onDark:hover{background:rgba(255,255,255,.2)}
+.btn-lg{padding:11px 22px;font-size:13px}
+
+.badge{display:inline-flex;padding:2px 8px;border-radius:20px;font-size:10px;font-weight:700;white-space:nowrap}
+.badge-green{background:var(--green-bg);color:var(--green)}
+.badge-amber{background:var(--amber-bg);color:var(--amber)}
+.badge-red{background:var(--red-bg);color:var(--red)}
+.badge-solid{background:var(--red);color:#fff}
+.badge-neutral{background:var(--surface-2);color:var(--text-2)}
+
+.status{display:inline-flex;align-items:center;gap:5px;padding:3px 9px;border-radius:20px;font-size:10px;font-weight:700}
+.s-on{background:var(--green-bg);color:var(--green)}
+.s-at{background:var(--amber-bg);color:var(--amber)}
+.s-off{background:var(--red-bg);color:var(--red)}
+.s-cl{background:var(--surface-2);color:var(--text-3)}
+.dot{width:5px;height:5px;border-radius:50%;flex-shrink:0}
+.d-g{background:var(--green)}.d-a{background:#e07020}.d-r{background:var(--red)}.d-n{background:var(--text-3)}
+
+.filters{display:flex;flex-wrap:wrap;gap:7px;align-items:center}
+.pill{padding:4px 12px;border-radius:20px;font-size:11px;font-weight:600;cursor:pointer;
+  border:1.5px solid var(--border-2);color:var(--text-2);background:var(--surface);transition:all .12s;
+  display:inline-flex;align-items:center;gap:6px}
+.pill.on{border-color:var(--green);background:var(--green);color:#fff}
+.pill:hover:not(.on){border-color:var(--green);color:var(--green)}
+.pill[data-lvl=Critical].on{background:var(--red-strong);border-color:var(--red-strong)}
+.pill[data-lvl=High].on{background:var(--red);border-color:var(--red)}
+.pill[data-lvl=Medium].on{background:var(--rag-amber);border-color:var(--rag-amber)}
+.pill[data-lvl=Low].on{background:var(--rag-g);border-color:var(--rag-g)}
+.pill[data-lvl=Unrated].on{background:var(--text-3);border-color:var(--text-3)}
+.pill .c{font-family:var(--mono);font-size:10px;opacity:.75}
+
+.betbar{display:flex;flex-wrap:wrap;gap:7px;align-items:center;margin-bottom:16px}
+.betbar .lbl{font-size:9px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;
+  color:var(--text-3);margin-right:4px}
+.bet{padding:7px 13px;border-radius:20px;font-size:11.5px;font-weight:600;cursor:pointer;
+  border:1.5px solid var(--border-2);color:var(--text-2);background:var(--surface);transition:all .12s;
+  display:inline-flex;align-items:center;gap:7px}
+.bet:hover:not(.on){border-color:var(--green);color:var(--green)}
+.bet.on{border-color:var(--ssb-teal);background:var(--ssb-teal);color:#fff}
+.bet .c{font-family:var(--mono);font-size:10px;opacity:.7}
+
+.metrics{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px;margin-bottom:18px}
+.metric{background:var(--surface);border:1px solid var(--border);border-radius:var(--r-2);
+  padding:16px 18px 14px;box-shadow:var(--sh);position:relative;overflow:hidden;text-align:left;
+  cursor:pointer;width:100%;transition:box-shadow .15s}
+.metric:hover{box-shadow:var(--sh-2)}
+.metric::after{content:'';position:absolute;bottom:0;left:0;right:0;height:2px;
+  background:linear-gradient(90deg,var(--green-light),var(--green));border-radius:0 0 var(--r-2) var(--r-2)}
+.metric.warn::after{background:linear-gradient(90deg,#ffd2a8,var(--rag-amber))}
+.metric.sev::after{background:linear-gradient(90deg,#f3b4b4,var(--red-strong))}
+.m-label{font-size:9.5px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--text-3);margin-bottom:8px}
+.m-value{font-family:var(--mono);font-size:26px;font-weight:600;color:var(--text);line-height:1}
+.m-sub{font-size:11px;margin-top:5px;color:var(--text-3)}
+
+.card{background:var(--surface);border:1px solid var(--border);border-radius:var(--r-2);
+  box-shadow:var(--sh);margin-bottom:18px;overflow:hidden}
+.card-bar{display:flex;align-items:center;gap:12px;flex-wrap:wrap;padding:14px 18px;
+  border-bottom:1px solid var(--border)}
+.card-title{font-size:12.5px;font-weight:700;color:var(--text);letter-spacing:-.01em}
+.card-sub{font-size:10.5px;color:var(--text-3)}
+.card-acts{margin-left:auto;display:flex;gap:6px;flex-wrap:wrap}
+.card-pad{padding:16px 18px}
+.filterbar{padding:12px 18px}
+.fgroup{display:flex;align-items:center;gap:7px;flex-wrap:wrap}
+.fbanner{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-top:11px;padding:9px 13px;
+  background:var(--tip);border-left:3px solid #e07020;border-radius:var(--r);
+  font-size:11.5px;font-weight:600;color:var(--text)}
+.fbanner .btn{margin-left:auto}
+.fgroup>.lbl{font-size:9px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--text-3)}
+.seg{display:inline-flex;border:1.5px solid var(--border-2);border-radius:20px;overflow:hidden;background:var(--surface)}
+.seg button{background:none;border:none;padding:4px 13px;font-size:11px;font-weight:600;cursor:pointer;color:var(--text-2)}
+.seg button+button{border-left:1.5px solid var(--border-2)}
+.seg button.on{background:var(--green);color:#fff}
+select,input[type=search]{background:var(--surface-2);border:1.5px solid var(--border-2);border-radius:var(--r);
+  padding:6px 10px;font-size:12px;font-family:var(--f);color:var(--text);outline:none;transition:border-color .15s;max-width:330px}
+select:focus,input[type=search]:focus{border-color:var(--ssb-green)}
+.toggle{display:inline-flex;align-items:center;gap:6px;font-size:11.5px;font-weight:600;color:var(--text-2);cursor:pointer}
+.toggle input{accent-color:var(--ssb-green)}
+.spacer{flex:1 1 auto}
+
+/* ─── tables ───────────────────────────────────────────────────────────── */
+.tbl-wrap{overflow-x:auto}
+table.ds-tbl{width:100%;border-collapse:collapse}
+table.ds-tbl th{padding:8px 12px;text-align:left;font-size:9px;font-weight:700;letter-spacing:.08em;
+  text-transform:uppercase;color:#fff;background:var(--ssb-teal);line-height:1.35;
+  position:sticky;top:0;z-index:2}
+table.ds-tbl th.num{text-align:center}
+table.ds-tbl th.sortable{cursor:pointer}
+table.ds-tbl th.sortable:hover{color:var(--ssb-lime)}
+table.ds-tbl th .arrow{font-size:8px;opacity:.7}
+table.ds-tbl td{padding:10px 12px;border-bottom:1px solid var(--border);font-size:12.5px;vertical-align:top}
+table.ds-tbl td.num{text-align:center;font-family:var(--mono);font-size:12px}
+table.ds-tbl.fixed{table-layout:fixed;min-width:1080px}
+table.ds-tbl.fixed td,table.ds-tbl.fixed th{overflow-wrap:anywhere}
+table.ds-tbl.narrow{min-width:0}
+tr.item{cursor:pointer}
+tr.item:hover>td{background:rgba(26,110,62,.05)}
+tr.item.open>td{background:var(--tint)}
+td.ref{font-family:var(--mono);font-size:11px;font-weight:600;white-space:nowrap;padding-right:4px}
+td.ref .caret{display:inline-block;width:8px;color:var(--text-3);font-size:7px;transition:transform .12s}
+tr.item.open td.ref .caret{transform:rotate(90deg);color:var(--green)}
+td.dt{font-family:var(--mono);font-size:11.5px;color:var(--text-2);white-space:nowrap}
+/* A deadline recorded as words, not a date: wrap it. */
+td.dt-text{white-space:normal;overflow-wrap:break-word;font-family:var(--f);font-size:11px;
+  line-height:1.35;font-style:italic}
+td.title{font-weight:600;color:var(--text)}
+td.meta{font-size:11.5px;color:var(--text-2)}
+tr.closed-row td.ref,tr.closed-row td.title{color:var(--text-3);font-weight:500}
+.lvl{border-left:3px solid transparent}
+.lvl[data-lvl=Critical]{border-left-color:var(--red-strong)}
+.lvl[data-lvl=High]{border-left-color:var(--red)}
+.lvl[data-lvl=Medium]{border-left-color:var(--rag-amber)}
+.lvl[data-lvl=Low]{border-left-color:var(--rag-g)}
+.lvl[data-lvl=Unrated]{border-left-color:var(--surface-3)}
+.od{color:var(--red);font-weight:700;font-family:var(--mono);font-size:11.5px;white-space:nowrap}
+td.od-cell{background:var(--red-bg)}
+.muted{color:var(--text-3)}
+
+tr.detail>td{background:var(--tint);padding:0;border-bottom:1px solid var(--border-2)}
+.dwrap{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:0 28px;
+  padding:14px 18px 16px 20px;border-left:3px solid var(--ssb-green)}
+.dfield{padding:8px 0;min-width:0}
+.dfield h4{font-size:9px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;
+  color:var(--green);margin-bottom:5px}
+.dfield p{white-space:pre-wrap;font-size:12.5px;line-height:1.55;color:var(--text);overflow-wrap:break-word}
+.dfield p.none{color:var(--text-3);font-style:italic}
+.dmeta{grid-column:1/-1;display:flex;flex-wrap:wrap;gap:6px 22px;padding-top:10px;margin-top:6px;
+  border-top:1px solid var(--border-2);font-size:11px;color:var(--text-3)}
+.dmeta span{display:inline-flex;align-items:baseline;gap:6px;font-size:9px;font-weight:700;
+  letter-spacing:.1em;text-transform:uppercase;color:var(--text-3)}
+.dmeta .has-note{cursor:help}
+.dmeta .has-note b{border-bottom:1px dotted var(--text-3)}
+.dmeta b{font-family:var(--mono);font-size:11px;font-weight:600;color:var(--text-2);
+  letter-spacing:0;text-transform:none}
+
+/* ─── overview extras ──────────────────────────────────────────────────── */
+.bar{display:flex;height:8px;border-radius:20px;overflow:hidden;background:var(--surface-2);min-width:80px}
+.bar i{display:block}
+.legend{display:flex;flex-wrap:wrap;gap:14px;padding:11px 18px;border-top:1px solid var(--border);
+  font-size:10px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--text-3)}
+.legend span{display:inline-flex;align-items:center;gap:5px}
+.legend i{width:8px;height:8px;border-radius:2px;display:inline-block}
+.ov-grid{display:grid;grid-template-columns:1.5fr 1fr;gap:18px;align-items:start}
+@media(max-width:1180px){.ov-grid{grid-template-columns:1fr}}
+table.matrix{width:100%;border-collapse:collapse}
+table.matrix th,table.matrix td{border:1px solid var(--border-2);text-align:center;padding:8px 4px;font-size:11px}
+table.matrix th{font-size:9px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--text-3);background:var(--surface-2)}
+table.matrix th.rh{text-align:right;white-space:nowrap}
+table.matrix td.cell{font-family:var(--mono);font-size:13px;font-weight:600;color:#fff}
+.note{padding:11px 18px;font-size:11px;color:var(--text-3);border-top:1px solid var(--border)}
+.callout{border-radius:var(--r);padding:13px 16px;font-size:12.5px;margin:0 18px 16px}
+.callout-tint{background:var(--tint);border-left:3px solid var(--ssb-green);color:var(--text)}
+.callout-warn{background:var(--tip);border-left:3px solid #e07020;color:var(--text)}
+.empty{text-align:center;padding:44px 24px}
+.empty-title{font-size:15px;font-weight:700;color:var(--text-2);margin-bottom:6px}
+.empty-sub{font-size:12px;color:var(--text-3)}
+.footnote{font-size:11px;color:var(--text-3);line-height:1.7;max-width:110ch}
+
+/* ─── landing (no data loaded) ─────────────────────────────────────────── */
+.landing{max-width:860px;margin:10px auto 0}
+.land-hero{background:var(--surface);border:1px solid var(--border);border-radius:var(--r-2);
+  box-shadow:var(--sh);padding:34px 34px 28px;margin-bottom:18px}
+.land-hero h2{font-size:22px;font-weight:800;letter-spacing:-.02em;margin-bottom:8px}
+.land-hero p{font-size:13px;color:var(--text-2);max-width:70ch;margin-bottom:20px}
+.drop{border:2px dashed var(--border-2);border-radius:var(--r-2);padding:40px 22px;text-align:center;
+  cursor:pointer;background:var(--surface-2);transition:all .15s}
+.drop:hover,.drop.hot{border-color:var(--ssb-green);background:var(--tint)}
+.drop b{display:block;font-size:14px;font-weight:700;color:var(--text);margin-bottom:5px}
+.drop span{font-size:12px;color:var(--text-3)}
+.land-steps{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:14px;margin-top:22px}
+.step{border-left:3px solid var(--green-light);padding:2px 0 2px 13px}
+.step h4{font-size:9.5px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--green);margin-bottom:5px}
+.step p{font-size:12px;color:var(--text-2);margin:0}
+
+/* ─── audit / data-contract view ───────────────────────────────────────── */
+.kv{display:grid;grid-template-columns:200px 1fr;gap:8px 18px;font-size:12.5px}
+.kv dt{font-size:9.5px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--text-3);padding-top:2px}
+.kv dd{color:var(--text);overflow-wrap:anywhere}
+@media(max-width:700px){.kv{grid-template-columns:1fr;gap:2px 0}.kv dd{margin-bottom:10px}}
+.chips{display:flex;flex-wrap:wrap;gap:5px}
+.chip{font-size:11px;padding:2px 9px;border-radius:20px;background:var(--surface-2);color:var(--text-2);border:1px solid var(--border-2)}
+.chip-warn{background:var(--tip);border-color:#e0b070;color:var(--amber)}
+.props{list-style:none;font-size:12.5px}
+.props li{padding:7px 0 7px 26px;position:relative;border-bottom:1px solid var(--border);color:var(--text)}
+.props li:last-child{border-bottom:none}
+.props li::before{content:'';position:absolute;left:4px;top:13px;width:10px;height:5px;
+  border-left:2px solid var(--ssb-green);border-bottom:2px solid var(--ssb-green);transform:rotate(-45deg)}
+.rep{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:12px}
+.asat-opts{display:flex;gap:8px;flex-wrap:wrap;margin-top:11px}
+.asat-opt{display:flex;flex-direction:column;gap:1px;text-align:left;cursor:pointer;
+  background:var(--surface);border:1.5px solid var(--border-2);border-radius:8px;padding:7px 12px;
+  font-family:inherit}
+.asat-opt:hover{border-color:var(--green)}
+.asat-opt.on{border-color:var(--green);background:var(--green-bg)}
+.asat-d{font-family:var(--mono);font-size:12px;font-weight:700;color:var(--text)}
+.asat-opt.on .asat-d{color:#0f4e3e}
+.asat-l{font-size:9px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--text-3)}
+.asat-row{display:flex;align-items:center;gap:9px;flex-wrap:wrap;margin-top:11px;padding-top:10px;
+  border-top:1px solid var(--border-2)}
+.asat-in{font-family:var(--mono);font-size:11.5px;padding:5px 8px;border-radius:6px;
+  border:1.5px solid var(--border-2);background:var(--surface);color:var(--text)}
+.asat-in:focus{outline:2px solid var(--green);outline-offset:1px}
+.rep-cell{background:var(--surface-2);border-radius:var(--r);padding:12px 14px}
+.rep-cell b{display:block;font-family:var(--mono);font-size:20px;font-weight:600;line-height:1.1}
+.rep-cell span{font-size:9.5px;font-weight:700;letter-spacing:.09em;text-transform:uppercase;color:var(--text-3)}
+.mono{font-family:var(--mono);font-size:11.5px}
+
+/* ─── upload dialog ───────────────────────────────────────────────────── */
+.modal{position:fixed;inset:0;background:rgba(12,31,19,.6);display:none;align-items:center;
+  justify-content:center;z-index:60;padding:20px}
+.modal.show{display:flex}
+.mcard{background:var(--surface);border-radius:var(--r-2);max-width:560px;width:100%;padding:26px;box-shadow:var(--sh-2)}
+.mcard h3{font-size:18px;font-weight:800;letter-spacing:-.01em;margin-bottom:8px}
+.mcard p{font-size:12.5px;color:var(--text-2);margin-bottom:16px}
+.macts{display:flex;justify-content:flex-end;gap:8px;margin-top:18px}
+.msg{margin-top:14px;font-size:12px;padding:11px 14px;border-radius:var(--r);display:none;line-height:1.5}
+.msg.show{display:block}
+.msg.err{background:var(--red-bg);border-left:3px solid var(--red);color:var(--text)}
+.msg.ok{background:var(--green-bg);border-left:3px solid var(--ssb-green);color:var(--text)}
+.msg.busy{background:var(--tip);border-left:3px solid #e07020;color:var(--text)}
+
+@media(max-width:900px){
+  .app{grid-template-columns:1fr}
+  .side{position:static;height:auto;flex-direction:row;align-items:center;overflow-x:auto;border-right:none;
+    border-bottom:1px solid rgba(255,255,255,.07)}
+  .side-logo{border-bottom:none;border-right:1px solid rgba(255,255,255,.07);flex:none;padding:12px 14px}
+  .side-label{display:none}
+  .side-items{display:flex;gap:4px;padding:8px;flex:1}
+  .side-sep,.side-foot{display:none}
+  .nav-item{white-space:nowrap;flex:none}
+  .nav-item .n{display:none}
+  .topbar{padding:18px 18px 16px}
+  .wrap{padding:16px 18px 48px}
+  .ov-grid{grid-template-columns:1fr}
+}
+@media(prefers-reduced-motion:reduce){*{transition:none!important}}
+@media print{
+  .app{grid-template-columns:1fr}
+  .side,.modal,.card-acts,.btn,.filterbar{display:none!important}
+  .topbar{background:#fff;border-bottom:3px solid var(--ssb-teal)}
+  .topbar h1{color:var(--text)} .topbar .sub{color:var(--text-2)}
+  .topbar .eyebrow{color:var(--ssb-green)}
+  .stamp{border-color:var(--border-2)} .stamp b{color:var(--text)} .stamp span{color:var(--text-3)}
+  body{background:#fff}
+  .card{break-inside:avoid;box-shadow:none;border:1px solid var(--border-2)}
+  tr.detail{display:table-row!important}
+}
+</style>
+</head>
+<body>
+
+<!-- ═══ ICON SPRITE ═══════════════════════════════════════════════════════════
+     Static, trusted markup. Icons are referenced with <use> and are never
+     generated from workbook content. This is why no innerHTML is needed to
+     render the navigation.
+     ═════════════════════════════════════════════════════════════════════════ -->
+<svg class="sprite" aria-hidden="true" focusable="false" xmlns="http://www.w3.org/2000/svg">
+  <symbol id="i-overview" viewBox="0 0 16 16">
+    <rect x="1" y="1" width="6" height="6" rx="1.5" fill="currentColor"/>
+    <rect x="9" y="1" width="6" height="6" rx="1.5" fill="currentColor"/>
+    <rect x="1" y="9" width="6" height="6" rx="1.5" fill="currentColor"/>
+    <rect x="9" y="9" width="6" height="6" rx="1.5" fill="currentColor"/>
+  </symbol>
+  <symbol id="i-risks" viewBox="0 0 16 16">
+    <path d="M8 2L15 14H1L8 2z" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/>
+    <path d="M8 6.5v3.2M8 11.8v.6" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+  </symbol>
+  <symbol id="i-assumptions" viewBox="0 0 16 16">
+    <circle cx="8" cy="8" r="6.4" fill="none" stroke="currentColor" stroke-width="1.5"/>
+    <path d="M6.2 6.2a1.9 1.9 0 013.6.7c0 1.3-1.8 1.5-1.8 2.7M8 12.1v.5" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+  </symbol>
+  <symbol id="i-issues" viewBox="0 0 16 16">
+    <circle cx="8" cy="8" r="6.4" fill="none" stroke="currentColor" stroke-width="1.5"/>
+    <path d="M8 4.8v4M8 10.7v.6" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+  </symbol>
+  <symbol id="i-dependencies" viewBox="0 0 16 16">
+    <path d="M6.4 9.6a2.7 2.7 0 010-3.8l1.4-1.4a2.7 2.7 0 013.8 3.8l-.7.7" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+    <path d="M9.6 6.4a2.7 2.7 0 010 3.8l-1.4 1.4a2.7 2.7 0 01-3.8-3.8l.7-.7" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+  </symbol>
+  <symbol id="i-all" viewBox="0 0 16 16">
+    <path d="M2 4h12M2 8h9M2 12h11" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+  </symbol>
+  <symbol id="i-quality" viewBox="0 0 16 16">
+    <path d="M8 1.6l5.4 2v4.1c0 3.1-2.2 5.6-5.4 6.7-3.2-1.1-5.4-3.6-5.4-6.7V3.6l5.4-2z" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/>
+    <path d="M5.7 7.9l1.7 1.8 3-3.4" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+  </symbol>
+  <symbol id="i-contract" viewBox="0 0 16 16">
+    <path d="M3.4 1.6h6l3.2 3.2v9.6H3.4z" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/>
+    <path d="M9.2 1.8v3.2h3.2M5.7 8.4h4.6M5.7 11h3.1" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+  </symbol>
+</svg>
+
+<div class="app">
+
+  <aside class="side">
+    <div class="side-logo">
+      <svg class="ssb ssb--dark" style="width:132px" role="img" aria-label="Making our operations — Simpler Smarter Better" viewBox="-2 -2 228 132" xmlns="http://www.w3.org/2000/svg">
+        <text x="3" y="13" class="ssb-heading" font-size="17.5" font-weight="700" letter-spacing="0.4" textLength="220" lengthAdjust="spacingAndGlyphs">MAKING OUR OPERATIONS</text>
+        <rect x="5" y="33" width="90" height="90" rx="18" class="ssb-frame" fill="none" stroke-width="10"/>
+        <path d="M25 79 L43 99 L77 59" class="ssb-tick" fill="none" stroke-width="12" stroke-linecap="round" stroke-linejoin="round"/>
+        <text x="113" y="55" class="ssb-word" font-size="27" font-weight="800" textLength="98" lengthAdjust="spacingAndGlyphs">Simpler</text>
+        <text x="113" y="88" class="ssb-word" font-size="27" font-weight="800" textLength="102" lengthAdjust="spacingAndGlyphs">Smarter</text>
+        <text x="113" y="121" class="ssb-word" font-size="27" font-weight="800" textLength="76" lengthAdjust="spacingAndGlyphs">Better</text>
+      </svg>
+      <div class="side-label">RAID Dashboard v2.3</div>
+    </div>
+    <nav class="side-items" id="views" aria-label="RAID views"></nav>
+    <div class="side-foot" id="footVer">v2 · UU–SSB</div>
+  </aside>
+
+  <main class="main">
+    <header class="topbar">
+      <div>
+        <p class="eyebrow">United Utilities · Simpler Smarter Better</p>
+        <h1 id="viewTitle">SSB RAID Dashboard v2.3</h1>
+        <p class="sub" id="viewSub">Risks, assumptions, issues and dependencies across the eight big bets</p>
+      </div>
+      <div class="stamp-wrap">
+        <div class="stamp">
+          <b id="stampDate">No data loaded</b>
+          <span id="stampSrc">Upload the RAID log to begin</span>
+        </div>
+        <button class="btn btn-onDark" id="openUpload" type="button">Upload RAID data</button>
+      </div>
+    </header>
+
+    <!-- Landing state: shown until a workbook is loaded. The dashboard ships
+         empty by design, so this is the first thing a user sees. -->
+    <div class="wrap" id="landing">
+      <div class="landing">
+        <div class="land-hero">
+          <h2>Load the RAID log to build the dashboard</h2>
+          <p>This file holds the structure of the SSB Programme RAID Log — the sheet and column
+             layout, and the approved big bet and initiative names — but none of the RAID content
+             itself. Point it at the current workbook and every view below fills in automatically.</p>
+          <div class="drop" id="dropLanding" tabindex="0" role="button"
+               aria-label="Choose or drop the RAID log workbook">
+            <b>Drop the RAID log .xlsx here</b>
+            <span>or press to browse for it</span>
+          </div>
+          <div class="msg" id="landStatus" role="status" aria-live="polite"></div>
+          <div class="land-steps">
+            <div class="step">
+              <h4>Stays on your machine</h4>
+              <p>The workbook is read in the browser. Nothing is uploaded, transmitted or saved —
+                 there is no network code in this file at all.</p>
+            </div>
+            <div class="step">
+              <h4>Nothing is kept</h4>
+              <p>RAID data is held in memory for this tab only. Close or refresh and it is gone,
+                 so no programme data is left behind on the device.</p>
+            </div>
+            <div class="step">
+              <h4>Check the structure first</h4>
+              <p>The Data contract view lists every sheet, column and approved name this dashboard
+                 expects, before you load anything.</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Dashboard state: hidden until data is loaded. -->
+    <div class="wrap hidden" id="dash">
+      <div class="betbar" id="bets"></div>
+      <div class="metrics" id="kpis"></div>
+      <div class="card filterbar" id="filters"></div>
+      <div id="content"></div>
+      <p class="footnote" id="footnote"></p>
+    </div>
+  </main>
+</div>
+
+<div class="modal" id="uploadModal" role="dialog" aria-modal="true" aria-labelledby="upTitle">
+  <div class="mcard">
+    <h3 id="upTitle">Upload RAID data</h3>
+    <p>Choose the latest <b>SSB Programme RAID Log</b> workbook. The dashboard reads the Risks,
+      Assumptions, Issues, Dependencies and Data Validation tabs, and stamps the view with today's
+      date. The file is read in your browser — nothing is uploaded anywhere and nothing is saved.</p>
+    <div class="drop" id="dropModal" tabindex="0" role="button"
+         aria-label="Choose or drop the RAID log workbook">
+      <b>Drop the .xlsx here</b>
+      <span>or press to browse</span>
+    </div>
+    <input type="file" id="fileInput" accept=".xlsx,.xlsm" hidden>
+    <div class="msg" id="upStatus" role="status" aria-live="polite"></div>
+    <div class="macts">
+      <button class="btn btn-ghost" id="clearData" type="button">Clear data from memory</button>
+      <button class="btn btn-primary" id="closeUpload" type="button">Done</button>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ THE ONLY BAKED-IN CONTENT IN THIS FILE ═════════════════════════════════
+     Sheet and column definitions plus the Data Validation reference lists for
+     big bet and initiative names. There are no risks, issues, assumptions or
+     dependencies here. type="application/json" means the browser never executes
+     this block; it is read with JSON.parse and is inert data.
+     ═════════════════════════════════════════════════════════════════════════ -->
+<script id="ssb-file-structure" type="application/json">{
+ "fileStructureVersion": "2.3",
+ "note": "Baked-in file structure only. This block contains NO RAID records - only sheet/column definitions and the Data Validation reference lists for big bet and initiative names. RAID rows are supplied at runtime by the user's workbook and held in memory only.",
+ "bets": [
+  "Performance Culture",
+  "Fit For Future",
+  "Make vs Buy",
+  "Capacity Planning",
+  "Data Driven Operations",
+  "Power & Chemicals",
+  "RPRPRT",
+  "MESIP"
+ ],
+ "otherGroups": [
+  "ALL",
+  "Change",
+  "Data",
+  "Discovery",
+  "External to SSB",
+  "Programme",
+  "VRO"
+ ],
+ "betAliases": {
+  "performance_culture": "Performance Culture",
+  "fit_for_future": "Fit For Future",
+  "make_vs_buy": "Make vs Buy",
+  "capacity_planning": "Capacity Planning",
+  "data_driven_optimisation": "Data Driven Operations",
+  "data_driven_operations": "Data Driven Operations",
+  "power_and_chemicals": "Power & Chemicals",
+  "power_&_chemicals": "Power & Chemicals",
+  "rp_rp_rt": "RPRPRT",
+  "rprprt": "RPRPRT",
+  "maintenance_excellence": "MESIP",
+  "mesip": "MESIP"
+ },
+ "validation": {
+  "Performance Culture": [
+   "Daily Performance Excellence",
+   "Do It Better (Additional DPE Productivity)",
+   "Good Day's Work and Accountabilities",
+   "PC - All Initiatives",
+   "People Insight Dashboard",
+   "People insights dashboard",
+   "Redefining Leadership"
+  ],
+  "Fit For Future": [
+   "All Initiatives",
+   "Base Location",
+   "Design shift patterns",
+   "FFF - All Initiatives",
+   "Maintenance Model",
+   "Op Model Blueprint",
+   "Operations Operating Model - FSE Working Window & Start Location",
+   "Operations Operating Model - PC/PO Working Window",
+   "Operations Operating Model - Plan & Schedule Design",
+   "Operations Operating Model - Ww Growth",
+   "PC/PO Working Window",
+   "Start/finish location and shift patterns",
+   "Water Maintenance Model - Airvalves and pipebridges",
+   "Water Maintenance Model - PMV",
+   "Water Maintenance Model - Water County Maintenance Structure",
+   "Water Network Maintenance",
+   "Water Network Organisation Model",
+   "Water network review",
+   "Water network roles",
+   "Ww Growth",
+   "WW Growth (No Regrets)",
+   "WW SpoC (PM, Leads)"
+  ],
+  "Make vs Buy": [
+   "External to SSB",
+   "Insourcing",
+   "Make better 3rd Party decisions",
+   "MSP Contract",
+   "MSP, NMS Core and Mains Renewal",
+   "New Contracts",
+   "NMS Non Core and Maintenance Sourcing",
+   "Off Framework Spend",
+   "Optimise Contracts - CBRE",
+   "Optimise Contracts - Mains Renewal",
+   "Optimise Contracts - MSP",
+   "Optimise Contracts - NMS Core",
+   "Optimise Contracts - NMS Non Core",
+   "Optimising contracts",
+   "Power & Chemical Optimisation",
+   "Right-sourcing - DSEAR Inspections",
+   "Right-sourcing - Flow Meters",
+   "Right-sourcing - Ground Maintenance",
+   "Right-sourcing - LCV Maintenance",
+   "Right-sourcing - Mechincal Corrective Maintenance",
+   "Right-sourcing - Statutory Programmes",
+   "Rightsourcing"
+  ],
+  "Capacity Planning": [
+   "All Initiatives",
+   "Annual Capacity & Demand Planning",
+   "CAP - All Initiatives",
+   "Capacity Planning Tool Deployment",
+   "Commercial Optimisation",
+   "Commercial Optimisation - R&M Dashboard",
+   "End-to-end Capacity Planning & Budgeting",
+   "Ops Insight Dashboard",
+   "Ops insights dashboard",
+   "Unit Cost / Forecast Analysis & Perf. Dashboard"
+  ],
+  "Data Driven Operations": [
+   "AI & Automation - Document Search Use Case",
+   "Alarms B2B Phase 2",
+   "Alarms Optimisation",
+   "Alarms Optimisation - Alarms B2B Phase 1 Rollout cont.",
+   "Alarms Optimisation - Alarms B2B Phase 2",
+   "Alarms Optimisation - Automation of Standards",
+   "Alarms Optimisation - Wet Well Critical Logic",
+   "All Initiatives",
+   "Automation of Standards",
+   "DDO - All Initiatives",
+   "Final Effluent",
+   "Maximising M&C Team Capability",
+   "Proactive System Monitoring",
+   "Proactive System Monitoring - Data Driven Site Visits",
+   "Proactive System Monitoring - Maximising Existing M&C Team Capability",
+   "Proactive System Monitoring - Maximising Extended M&C Team Capability",
+   "Proactive System Monitoring - Water ISM - Treatment A&V",
+   "Remote Interventions",
+   "Remote Interventions - Remote Interventions - Extended Capability",
+   "Remote Interventions - Remote Interventions – Existing Capability",
+   "Remote Interventions - Remote Resets",
+   "Resource",
+   "Spill Naming",
+   "Tactical Alarm Rationalisation & Management",
+   "Wet Weather Button",
+   "Wet Well Critical"
+  ],
+  "Power & Chemicals": [
+   "HV O&M",
+   "Optimise",
+   "P&C - All Initiatives",
+   "Power & Chems Use Less",
+   "PPA",
+   "S2S (P&C)"
+  ],
+  "RPRPRT": [
+   "All Initiatives",
+   "Architecture - relay",
+   "Backlog Management",
+   "Better Job Insight (INS)",
+   "Business Change - relay",
+   "Data - relay",
+   "Engineer Schedule View",
+   "FSE Schedule Visibility",
+   "Geo location",
+   "Integration - relay",
+   "Location Services (INS)",
+   "No Regrets",
+   "PC / PO Tour App",
+   "PC / PO Tour Solution",
+   "PC/PO Tour Solution (CWPR)",
+   "Regional Maintenance Pilot",
+   "relay",
+   "Right First Time",
+   "RPRPRT - All Initiatives",
+   "Salesforce Functional - relay",
+   "SAP Functional - relay",
+   "Squad",
+   "Tactical Tooling for Planning & Scheduling",
+   "Testing - relay",
+   "Work Closure & Right First Time",
+   "Work Order Priorities"
+  ],
+  "MESIP": [
+   "All Initiatives",
+   "Asset Health Performance",
+   "Asset Information",
+   "Enhanced parts management",
+   "EPM - Asset Refurbishment Workshop",
+   "EPM - Centrifuge Insourcing",
+   "Maintenance Transformation",
+   "Maintenance_Excellence",
+   "MESIP - All Initiatives",
+   "MESIP - wide",
+   "MESIP Value",
+   "Preventative Maintenance Optimisation",
+   "Targeted Asset Maintenance",
+   "TPM - Inlet Screens",
+   "TPM - Screw Pumps"
+  ],
+  "Data": [
+   "Annual Capacity & Demand Planning",
+   "Data",
+   "Unit Cost / Forecast Analysis & Perf. Dashboard"
+  ],
+  "VRO": [
+   "VRO"
+  ],
+  "Change": [
+   "Change"
+  ],
+  "Programme": [
+   "ALL",
+   "People insights dashboard",
+   "Programme"
+  ],
+  "External to SSB": [
+   "External to SSB",
+   "MESIP - All Initiatives",
+   "Wet Weather Button"
+  ],
+  "Discovery": [
+   "Discovery"
+  ],
+  "ALL": [
+   "ALL"
+  ]
+ },
+ "sheets": {
+  "risks": {
+   "label": "Risks",
+   "sheet": "Risks",
+   "firstDataRow": 9,
+   "refPrefix": "SSB",
+   "keepIfAny": [
+    "H",
+    "I"
+   ],
+   "keepNote": "A risk is real only if it has a title or a description. A reference with nothing but dropdown selections is a pre-numbered blank row.",
+   "columns": [
+    {
+     "col": "A",
+     "field": "ref",
+     "heading": "Reference",
+     "type": "ref"
+    },
+    {
+     "col": "B",
+     "field": "bet",
+     "heading": "Big bet",
+     "type": "bet"
+    },
+    {
+     "col": "C",
+     "field": "initiative",
+     "heading": "Initiative",
+     "type": "text"
+    },
+    {
+     "col": "F",
+     "field": "raised",
+     "heading": "Raised date",
+     "type": "date"
+    },
+    {
+     "col": "H",
+     "field": "title",
+     "heading": "Risk title",
+     "type": "text",
+     "prose": true
+    },
+    {
+     "col": "I",
+     "field": "desc",
+     "heading": "Risk description / effect / impact",
+     "type": "text",
+     "prose": true
+    },
+    {
+     "col": "J",
+     "field": "status",
+     "heading": "Status",
+     "type": "status"
+    },
+    {
+     "col": "K",
+     "field": "impact",
+     "heading": "Impact",
+     "type": "text"
+    },
+    {
+     "col": "L",
+     "field": "likelihood",
+     "heading": "Likelihood",
+     "type": "text"
+    },
+    {
+     "col": "M",
+     "field": "score",
+     "heading": "Score",
+     "type": "text"
+    },
+    {
+     "col": "N",
+     "field": "level",
+     "heading": "Risk level",
+     "type": "level"
+    },
+    {
+     "col": "O",
+     "field": "plan",
+     "heading": "Mitigation / resolution plan",
+     "type": "text",
+     "prose": true
+    },
+    {
+     "col": "Q",
+     "field": "progress",
+     "heading": "Progress update",
+     "type": "text",
+     "blankIf": [
+      "dd/mm/yyyy -",
+      "dd/mm/yyyy",
+      "dd/mm/yy -",
+      "dd/mm/yy",
+      "dd/mm/yyyy-"
+     ],
+     "prose": true
+    },
+    {
+     "col": "R",
+     "field": "lastUpdated",
+     "heading": "Last updated",
+     "type": "date"
+    },
+    {
+     "col": "S",
+     "field": "due",
+     "heading": "Due date",
+     "type": "date"
+    },
+    {
+     "col": "T",
+     "field": "closed",
+     "heading": "Date closed",
+     "type": "date"
+    },
+    {
+     "col": "U",
+     "field": "linkRef",
+     "heading": "Linked issue",
+     "type": "text"
+    },
+    {
+     "col": "V",
+     "field": "overdueFlag",
+     "heading": "Log's own overdue flag",
+     "type": "text",
+     "note": "The workbook's \"Overdue?\" column. It is a formula, not typed in: Closed when the item is closed, \"Fill Due Date\" when it is open with no due date, \"No\" when it is open and not yet due, \"Yes\" when it is open and past its due date. Excel works that out from TODAY() at the moment the workbook was last recalculated, so it is a snapshot taken when the file was saved rather than a live value."
+    },
+    {
+     "col": "P",
+     "field": "owner",
+     "heading": "Owner",
+     "type": "text"
+    }
+   ]
+  },
+  "issues": {
+   "label": "Issues",
+   "sheet": "Issues",
+   "firstDataRow": 9,
+   "refPrefix": "SSB",
+   "keepIfAny": [
+    "H",
+    "I"
+   ],
+   "keepNote": "An issue is real only if it has a title or a description.",
+   "columns": [
+    {
+     "col": "A",
+     "field": "ref",
+     "heading": "Reference",
+     "type": "ref"
+    },
+    {
+     "col": "B",
+     "field": "bet",
+     "heading": "Big bet",
+     "type": "bet"
+    },
+    {
+     "col": "C",
+     "field": "initiative",
+     "heading": "Initiative",
+     "type": "text"
+    },
+    {
+     "col": "F",
+     "field": "raised",
+     "heading": "Raised date",
+     "type": "date"
+    },
+    {
+     "col": "H",
+     "field": "title",
+     "heading": "Issue title",
+     "type": "text",
+     "prose": true
+    },
+    {
+     "col": "I",
+     "field": "desc",
+     "heading": "Issue description / effect / impact",
+     "type": "text",
+     "prose": true
+    },
+    {
+     "col": "J",
+     "field": "status",
+     "heading": "Status",
+     "type": "status"
+    },
+    {
+     "col": "K",
+     "field": "consequence",
+     "heading": "Consequence",
+     "type": "text"
+    },
+    {
+     "col": "L",
+     "field": "likelihood",
+     "heading": "Likelihood",
+     "type": "text"
+    },
+    {
+     "col": "M",
+     "field": "score",
+     "heading": "Score",
+     "type": "text"
+    },
+    {
+     "col": "N",
+     "field": "level",
+     "heading": "Issue level",
+     "type": "level"
+    },
+    {
+     "col": "O",
+     "field": "plan",
+     "heading": "Mitigation / resolution plan",
+     "type": "text",
+     "prose": true
+    },
+    {
+     "col": "Q",
+     "field": "progress",
+     "heading": "Progress update",
+     "type": "text",
+     "blankIf": [
+      "dd/mm/yyyy -",
+      "dd/mm/yyyy",
+      "dd/mm/yy -",
+      "dd/mm/yy",
+      "dd/mm/yyyy-"
+     ],
+     "prose": true
+    },
+    {
+     "col": "R",
+     "field": "lastUpdated",
+     "heading": "Last updated",
+     "type": "date"
+    },
+    {
+     "col": "S",
+     "field": "due",
+     "heading": "Due date",
+     "type": "date"
+    },
+    {
+     "col": "T",
+     "field": "closed",
+     "heading": "Date closed",
+     "type": "date"
+    },
+    {
+     "col": "U",
+     "field": "linkRef",
+     "heading": "Linked risk",
+     "type": "text"
+    },
+    {
+     "col": "V",
+     "field": "overdueFlag",
+     "heading": "Log's own overdue flag",
+     "type": "text",
+     "note": "The workbook's \"Overdue?\" column. It is a formula, not typed in: Closed when the item is closed, \"Fill Due Date\" when it is open with no due date, \"No\" when it is open and not yet due, \"Yes\" when it is open and past its due date. Excel works that out from TODAY() at the moment the workbook was last recalculated, so it is a snapshot taken when the file was saved rather than a live value."
+    },
+    {
+     "col": "P",
+     "field": "owner",
+     "heading": "Owner",
+     "type": "text"
+    }
+   ]
+  },
+  "assumptions": {
+   "label": "Assumptions",
+   "sheet": "Assumptions",
+   "firstDataRow": 2,
+   "refPrefix": "SSB",
+   "keepIfAny": [
+    "F",
+    "G"
+   ],
+   "keepNote": "An assumption is real only if it has a title or a description.",
+   "columns": [
+    {
+     "col": "A",
+     "field": "ref",
+     "heading": "Reference",
+     "type": "ref"
+    },
+    {
+     "col": "B",
+     "field": "bet",
+     "heading": "Big bet",
+     "type": "bet"
+    },
+    {
+     "col": "C",
+     "field": "initiative",
+     "heading": "Initiative",
+     "type": "text"
+    },
+    {
+     "col": "D",
+     "field": "raised",
+     "heading": "Raised date",
+     "type": "date"
+    },
+    {
+     "col": "F",
+     "field": "title",
+     "heading": "Assumption title",
+     "type": "text",
+     "prose": true
+    },
+    {
+     "col": "G",
+     "field": "desc",
+     "heading": "Assumption description",
+     "type": "text",
+     "prose": true
+    },
+    {
+     "col": "H",
+     "field": "status",
+     "heading": "Status",
+     "type": "status"
+    },
+    {
+     "col": "I",
+     "field": "plan",
+     "heading": "Plan / action(s) to validate",
+     "type": "text",
+     "prose": true
+    },
+    {
+     "col": "K",
+     "field": "progress",
+     "heading": "Progress update",
+     "type": "text",
+     "blankIf": [
+      "dd/mm/yyyy -",
+      "dd/mm/yyyy",
+      "dd/mm/yy -",
+      "dd/mm/yy",
+      "dd/mm/yyyy-"
+     ],
+     "prose": true
+    },
+    {
+     "col": "L",
+     "field": "lastUpdated",
+     "heading": "Last updated",
+     "type": "date"
+    },
+    {
+     "col": "M",
+     "field": "due",
+     "heading": "Validation due date",
+     "type": "date"
+    },
+    {
+     "col": "J",
+     "field": "owner",
+     "heading": "Owner",
+     "type": "text"
+    }
+   ]
+  },
+  "dependencies": {
+   "label": "Dependencies",
+   "sheet": "Dependencies",
+   "firstDataRow": 5,
+   "refPrefix": "SSB",
+   "keepIfAny": [
+    "K",
+    "L"
+   ],
+   "keepNote": "A dependency is real only if it has a title or a description. A reference plus an outbound big bet and a status picked from the dropdowns is a half-filled row, not a dependency, and is not counted. Template text in the description does not count as a description — see the Data quality view for exactly what was treated as template.",
+   "columns": [
+    {
+     "col": "A",
+     "field": "ref",
+     "heading": "Reference",
+     "type": "ref"
+    },
+    {
+     "col": "B",
+     "field": "raised",
+     "heading": "Raised date",
+     "type": "date"
+    },
+    {
+     "col": "E",
+     "field": "outBet",
+     "heading": "Outbound big bet",
+     "type": "bet"
+    },
+    {
+     "col": "F",
+     "field": "outInit",
+     "heading": "Outbound initiative",
+     "type": "text"
+    },
+    {
+     "col": "H",
+     "field": "inBet",
+     "heading": "Inbound big bet",
+     "type": "bet"
+    },
+    {
+     "col": "I",
+     "field": "inInit",
+     "heading": "Inbound initiative",
+     "type": "text"
+    },
+    {
+     "col": "K",
+     "field": "title",
+     "heading": "Dependency title",
+     "type": "text",
+     "blankIf": [
+      "dependency title"
+     ],
+     "prose": true
+    },
+    {
+     "col": "L",
+     "field": "desc",
+     "heading": "Dependency description",
+     "type": "text",
+     "stripTemplate": "dependencyBoilerplate",
+     "prose": true
+    },
+    {
+     "col": "M",
+     "field": "deadline",
+     "heading": "Deadline / required by",
+     "type": "date"
+    },
+    {
+     "col": "N",
+     "field": "depStatus",
+     "heading": "Dependency status",
+     "type": "depstatus"
+    },
+    {
+     "col": "O",
+     "field": "progress",
+     "heading": "Progress update",
+     "type": "text",
+     "blankIf": [
+      "dd/mm/yyyy -",
+      "dd/mm/yyyy",
+      "dd/mm/yy -",
+      "dd/mm/yy",
+      "dd/mm/yyyy-"
+     ],
+     "prose": true
+    },
+    {
+     "col": "P",
+     "field": "lastReviewed",
+     "heading": "Last reviewed",
+     "type": "date"
+    },
+    {
+     "col": "Q",
+     "field": "status",
+     "heading": "Open / closed",
+     "type": "status"
+    },
+    {
+     "col": "R",
+     "field": "closureDate",
+     "heading": "Closure date",
+     "type": "date"
+    },
+    {
+     "col": "D",
+     "field": "owner",
+     "heading": "Owner",
+     "type": "text"
+    }
+   ]
+  }
+ },
+ "validationSheet": {
+  "sheet": "Data Validation",
+  "firstDataRow": 2,
+  "betCol": "A",
+  "initiativeCol": "B"
+ }
+}</script>
+<script>
+/* ════════════════════════════════════════════════════════════════════════════
+   MODULE 1 — SSB.limits and SSB.structure
+
+   Every bound applied to untrusted input lives here, in one place, so a
+   reviewer can see the whole resource-exhaustion posture at a glance rather
+   than hunting through the parsers. The workbook is the only untrusted input
+   this application has, and it is assumed hostile.
+   ════════════════════════════════════════════════════════════════════════════ */
+var SSB = {};
+
+SSB.limits = {
+  /* Input file. Rejected before a single byte is parsed. */
+  maxFileBytes:        40 * 1024 * 1024,   /* real RAID logs are a few MB      */
+
+  /* ZIP container. Guards against entry-count floods and zip bombs, where a
+     small archive expands to something large enough to exhaust memory. */
+  maxZipEntries:       4096,
+  maxEntryOutBytes:    96 * 1024 * 1024,   /* per decompressed member          */
+  maxTotalOutBytes:    256 * 1024 * 1024,  /* across all members we read       */
+
+  /* Sheet XML. Guards against a sheet declaring tens of millions of cells. */
+  maxCellsPerSheet:    400000,
+  maxRow:              200000,
+  maxCol:              1024,
+  maxSharedStrings:    500000,
+
+  /* Individual values. Long strings are truncated rather than rejected so a
+     single bad cell cannot block a whole load; truncation is reported. */
+  maxCellChars:        20000,
+
+  /* Rows kept per RAID category, after the reference-prefix filter. */
+  maxRowsPerCategory:  20000,
+
+  /* Template detection. A value repeated verbatim in this many rows of the same
+     column is a fill-down default rather than content, so it stops a row
+     counting as a real item. Exact, character-for-character repetition is the
+     test, which real prose almost never satisfies. This is the one number to
+     raise if a genuinely repeated note is ever wrongly discounted — every value
+     it affects is listed in the Data quality view, so a misfire is visible
+     rather than silent. */
+  templateRepeatThreshold: 5
+};
+
+/* ── the one and only piece of baked-in content ──────────────────────────────
+   Read from an inert application/json script block. Contains sheet and column
+   definitions plus the Data Validation reference lists — no RAID records.
+   If it is missing or malformed the application refuses to start rather than
+   guessing at a structure. */
+SSB.structure = (function () {
+  'use strict';
+  var node = document.getElementById('ssb-file-structure');
+  if (!node) throw new Error('File structure block is missing from this document.');
+  var parsed = JSON.parse(node.textContent);
+  /* Column definitions are addressed by letter in the JSON because that is how
+     the RAID log is discussed by the people who maintain it. Resolve to 1-based
+     indices once, here, so the parsers never do letter arithmetic inline. */
+  function letterToIndex(letters) {
+    var n = 0, i;
+    for (i = 0; i < letters.length; i++) {
+      var c = letters.charCodeAt(i);
+      if (c < 65 || c > 90) return 0;
+      n = n * 26 + (c - 64);
+    }
+    return n;
+  }
+  Object.keys(parsed.sheets).forEach(function (key) {
+    var def = parsed.sheets[key];
+    def.key = key;
+    def.columns.forEach(function (col) { col.index = letterToIndex(col.col); });
+    def.byField = {};
+    def.byLetter = {};
+    def.columns.forEach(function (col) {
+      def.byField[col.field] = col;
+      def.byLetter[col.col] = col;
+    });
+    /* Every letter in keepIfAny must name a column this file actually reads,
+       or the emptiness rule would silently pass over it. */
+    def.keepIfAny.forEach(function (letter) {
+      if (!def.byLetter[letter]) {
+        throw new Error('File structure error: ' + def.sheet + ' keepIfAny names column ' +
+          letter + ', which is not in its column list.');
+      }
+    });
+  });
+  parsed.validationSheet.betIndex = letterToIndex(parsed.validationSheet.betCol);
+  parsed.validationSheet.initiativeIndex = letterToIndex(parsed.validationSheet.initiativeCol);
+  /* Case- and whitespace-insensitive lookup for validating names found in an
+     uploaded workbook against the approved lists. */
+  parsed.lookup = (function () {
+    var betKeys = {}, initKeys = {};
+    function fold(s) { return String(s).replace(/\s+/g, ' ').trim().toLowerCase(); }
+    Object.keys(parsed.validation).forEach(function (bet) {
+      betKeys[fold(bet)] = bet;
+      parsed.validation[bet].forEach(function (init) { initKeys[fold(init)] = init; });
+    });
+    return { fold: fold, bet: betKeys, initiative: initKeys };
+  })();
+  return parsed;
+})();
+
+SSB.CATEGORIES = ['risks', 'issues', 'assumptions', 'dependencies'];
+</script>
+<script>
+/* ════════════════════════════════════════════════════════════════════════════
+   MODULE 2 — SSB.zip
+
+   A bounded reader for the ZIP container that an .xlsx file is. It walks the
+   central directory, then decompresses only the members the spreadsheet reader
+   actually asks for, using the browser's native DecompressionStream. There is
+   no third-party inflate implementation here and no code is generated at run
+   time.
+
+   Threat notes for review:
+   - Entry names are used only as dictionary keys for lookup. They are never
+     resolved as paths, never written to disk and never put into the DOM, so
+     path traversal ("../../x") and absolute paths are inert here. Duplicate
+     names resolve to the first occurrence rather than being overwritten.
+   - Every decompression is size-capped per member and in total (SSB.limits),
+     which is the zip-bomb defence.
+   - Member payload bounds are clamped to the actual buffer, so a corrupt or
+     hostile size field cannot read outside the array.
+   - Streamed archives that omit sizes from the central directory, and ZIP64
+     archives, are reported as unreadable rather than being guessed at. Excel
+     does not produce either for a normal save.
+   ════════════════════════════════════════════════════════════════════════════ */
+SSB.zip = (function (limits) {
+  'use strict';
+
+  var SIG_EOCD    = 0x06054b50;
+  var SIG_CENTRAL = 0x02014b50;
+  var SIG_LOCAL   = 0x04034b50;
+  var METHOD_STORE = 0;
+  var METHOD_DEFLATE = 8;
+  var U32_MAX = 0xFFFFFFFF;
+
+  function u16(b, o) {
+    if (o + 1 >= b.length) return -1;
+    return b[o] | (b[o + 1] << 8);
+  }
+  function u32(b, o) {
+    if (o + 3 >= b.length) return -1;
+    return (b[o] | (b[o + 1] << 8) | (b[o + 2] << 16) | (b[o + 3] << 24)) >>> 0;
+  }
+
+  /* Native raw-deflate decompression, with a hard output cap. The stream is
+     read incrementally so a bomb is abandoned partway rather than being fully
+     buffered and then measured. */
+  function inflateRaw(bytes, cap) {
+    if (bytes.length === 0) return Promise.resolve(new Uint8Array(0));
+    if (typeof DecompressionStream === 'undefined') {
+      return Promise.reject(new Error(
+        'This browser cannot unpack .xlsx files. Please use Chrome, Edge or Firefox.'));
+    }
+    var source = new ReadableStream({
+      start: function (controller) { controller.enqueue(bytes); controller.close(); }
+    });
+    var reader = source.pipeThrough(new DecompressionStream('deflate-raw')).getReader();
+    var chunks = [], total = 0;
+
+    function pump() {
+      return reader.read().then(function (res) {
+        if (res.done) {
+          var out = new Uint8Array(total), at = 0;
+          chunks.forEach(function (c) { out.set(c, at); at += c.length; });
+          return out;
+        }
+        total += res.value.length;
+        if (total > cap) {
+          reader.cancel();
+          throw new Error('This workbook expands to far more data than expected and was not read. ' +
+            'If the file is genuine, please re-save it from Excel.');
+        }
+        chunks.push(res.value);
+        return pump();
+      });
+    }
+    return pump();
+  }
+
+  /* Locate the end-of-central-directory record by scanning backwards through
+     the last 64KB + 22 bytes, which is the maximum the ZIP format allows the
+     trailing comment to occupy. */
+  function findEocd(b) {
+    var floor = Math.max(0, b.length - (0xFFFF + 22));
+    for (var i = b.length - 22; i >= floor; i--) {
+      if (u32(b, i) === SIG_EOCD) return i;
+    }
+    return -1;
+  }
+
+  function open(arrayBuffer) {
+    var b = new Uint8Array(arrayBuffer);
+    if (b.length < 22) throw new Error('That file is too small to be an Excel workbook.');
+
+    var eocd = findEocd(b);
+    if (eocd < 0) {
+      throw new Error('That does not look like an .xlsx workbook — no ZIP directory was found. ' +
+        'If it is an .xls or .csv file, save it as .xlsx first.');
+    }
+
+    var count = u16(b, eocd + 10);
+    var dirOffset = u32(b, eocd + 16);
+    if (count === U32_MAX || dirOffset === U32_MAX || count < 0 || dirOffset < 0) {
+      throw new Error('This workbook uses the ZIP64 format, which this dashboard does not read. ' +
+        'Re-saving it from Excel will normally fix that.');
+    }
+    if (count > limits.maxZipEntries) {
+      throw new Error('This workbook contains an unexpected number of internal parts (' + count +
+        ') and was not read.');
+    }
+
+    /* Pass 1 — read the directory. */
+    var entries = [];
+    var seen = Object.create(null);
+    var p = dirOffset;
+    for (var n = 0; n < count; n++) {
+      if (p + 46 > b.length || u32(b, p) !== SIG_CENTRAL) break;
+      var method     = u16(b, p + 10);
+      var compressed = u32(b, p + 20);
+      var declared   = u32(b, p + 24);
+      var nameLen    = u16(b, p + 28);
+      var extraLen   = u16(b, p + 30);
+      var commentLen = u16(b, p + 32);
+      var localHead  = u32(b, p + 42);
+      if (nameLen < 0 || localHead < 0 || localHead >= b.length) break;
+      var name = new TextDecoder('utf-8').decode(b.subarray(p + 46, p + 46 + nameLen));
+      if (!(name in seen)) {
+        seen[name] = true;
+        entries.push({
+          name: name, method: method, compressed: compressed,
+          declared: declared, localHead: localHead
+        });
+      }
+      p += 46 + nameLen + extraLen + commentLen;
+    }
+    if (!entries.length) throw new Error('That workbook appears to be empty or damaged.');
+
+    /* Pass 2 — resolve each member's payload span. Where the directory records
+       no compressed size (streamed archives), bound the member by the start of
+       the next one; that keeps us inside the buffer rather than trusting a zero. */
+    var ordered = entries.slice().sort(function (x, y) { return x.localHead - y.localHead; });
+    ordered.forEach(function (e, ix) {
+      var lNameLen  = u16(b, e.localHead + 26);
+      var lExtraLen = u16(b, e.localHead + 28);
+      if (u32(b, e.localHead) !== SIG_LOCAL || lNameLen < 0 || lExtraLen < 0) {
+        e.start = -1;
+        return;
+      }
+      e.start = e.localHead + 30 + lNameLen + lExtraLen;
+      var hardEnd = (ix + 1 < ordered.length) ? ordered[ix + 1].localHead : dirOffset;
+      if (hardEnd > b.length || hardEnd < e.start) hardEnd = b.length;
+      var end = (e.compressed > 0) ? e.start + e.compressed : hardEnd;
+      if (end > hardEnd) end = hardEnd;      /* never trust a size field over the layout */
+      e.end = end;
+    });
+
+    var byName = Object.create(null);
+    entries.forEach(function (e) { byName[e.name] = e; });
+
+    var budget = limits.maxTotalOutBytes;
+    var cache = Object.create(null);
+
+    /* Decompress a member and decode it as UTF-8 text. Resolves to null when
+       the member is absent, which callers treat as "part not present". */
+    function text(name) {
+      if (name in cache) return cache[name];
+      var e = byName[name];
+      if (!e) return Promise.resolve(null);
+      if (e.start < 0 || e.end <= e.start) {
+        return Promise.reject(new Error('Part "' + name + '" of the workbook could not be located.'));
+      }
+      if (e.method !== METHOD_STORE && e.method !== METHOD_DEFLATE) {
+        return Promise.reject(new Error('Part "' + name + '" uses an unsupported compression method.'));
+      }
+      var slice = b.subarray(e.start, e.end);
+      var cap = Math.min(limits.maxEntryOutBytes, budget);
+      var work = (e.method === METHOD_STORE ? Promise.resolve(slice) : inflateRaw(slice, cap))
+        .then(function (raw) {
+          budget -= raw.length;
+          if (budget < 0) {
+            throw new Error('This workbook expands beyond the size this dashboard will read.');
+          }
+          return new TextDecoder('utf-8').decode(raw);
+        });
+      cache[name] = work;
+      return work;
+    }
+
+    return { names: entries.map(function (e) { return e.name; }), text: text };
+  }
+
+  return { open: open };
+})(SSB.limits);
+</script>
+<script>
+/* ════════════════════════════════════════════════════════════════════════════
+   MODULE 3 — SSB.xlsx
+
+   Turns the XML parts of a workbook into a simple cell model:
+       sheets[sheetName] = { cells: Map("row,col" -> string | number | Date),
+                             maxRow, maxCol, truncated }
+
+   Only the parts needed are read: workbook.xml, its relationships,
+   sharedStrings.xml, styles.xml and the worksheet parts themselves.
+
+   Threat notes for review:
+   - The XML is scanned with bounded regular expressions rather than being fed
+     to DOMParser. That is deliberate: it means no part of a hostile workbook is
+     ever turned into a live document, and it removes XXE and external-entity
+     concerns entirely, since no entity resolution takes place at all. Only the
+     five predefined XML entities and numeric character references are decoded.
+   - Every loop has a ceiling from SSB.limits, so a sheet claiming millions of
+     cells stops at the cap and reports truncation instead of hanging the tab.
+   - Numeric character references are range-checked before String.fromCodePoint,
+     which would otherwise throw on out-of-range values.
+   ════════════════════════════════════════════════════════════════════════════ */
+SSB.xlsx = (function (limits) {
+  'use strict';
+
+  var ENTITIES = { amp: '&', lt: '<', gt: '>', quot: '"', apos: "'" };
+
+  /* Decode text content. No entity declarations are honoured — anything other
+     than the five predefined names and numeric references is left as written. */
+  function decode(s) {
+    if (s.indexOf('&') === -1) return s;
+    return s.replace(/&(#x[0-9a-fA-F]{1,6}|#[0-9]{1,7}|amp|lt|gt|quot|apos);/g, function (whole, body) {
+      if (body.charAt(0) === '#') {
+        var code = (body.charAt(1) === 'x' || body.charAt(1) === 'X')
+          ? parseInt(body.slice(2), 16)
+          : parseInt(body.slice(1), 10);
+        if (!isFinite(code) || code < 0 || code > 0x10FFFF) return whole;
+        if (code >= 0xD800 && code <= 0xDFFF) return whole;   /* lone surrogate */
+        try { return String.fromCodePoint(code); } catch (e) { return whole; }
+      }
+      return ENTITIES[body] !== undefined ? ENTITIES[body] : whole;
+    });
+  }
+
+  function attr(tag, name) {
+    var m = new RegExp('\\s' + name + '="([^"]*)"').exec(tag);
+    return m ? decode(m[1]) : null;
+  }
+
+  /* Concatenate the <t> runs inside a shared string or inline string. */
+  function runText(xml) {
+    var out = '', re = /<t(?:\s[^>]*)?>([\s\S]*?)<\/t>|<t\s*\/>/g, m;
+    while ((m = re.exec(xml))) {
+      out += m[1] !== undefined ? decode(m[1]) : '';
+      if (out.length > limits.maxCellChars) return out.slice(0, limits.maxCellChars);
+    }
+    return out;
+  }
+
+  function columnIndex(ref) {
+    var n = 0, i = 0;
+    while (i < ref.length) {
+      var c = ref.charCodeAt(i);
+      if (c < 65 || c > 90) break;
+      n = n * 26 + (c - 64);
+      i++;
+    }
+    return n;                                  /* 1-based, 0 when unparseable */
+  }
+
+  function sharedStrings(xml) {
+    var out = [];
+    if (!xml) return out;
+    var re = /<si(?:\s[^>]*)?>([\s\S]*?)<\/si>|<si\s*\/>/g, m;
+    while ((m = re.exec(xml))) {
+      out.push(m[1] !== undefined ? runText(m[1]) : '');
+      if (out.length >= limits.maxSharedStrings) break;
+    }
+    return out;
+  }
+
+  /* Excel number formats that mean "this is a date". Built-in ids are fixed by
+     the file format; custom ids are inspected for date tokens. */
+  var BUILTIN_DATE_FORMATS = [14, 15, 16, 17, 18, 19, 20, 21, 22, 27, 28, 29, 30, 31, 32, 33,
+    34, 35, 36, 45, 46, 47, 50, 51, 52, 53, 54, 55, 56, 57, 58];
+
+  function dateStyles(xml) {
+    var flags = [];
+    if (!xml) return flags;
+    var custom = Object.create(null), m;
+
+    var nf = /<numFmt\s[^>]*\/>/g;
+    while ((m = nf.exec(xml))) {
+      var id = parseInt(attr(m[0], 'numFmtId'), 10);
+      if (!isFinite(id)) continue;
+      var code = (attr(m[0], 'formatCode') || '')
+        .replace(/\[[^\]]*\]/g, '')            /* colour and locale sections   */
+        .replace(/"[^"]*"/g, '');              /* literal text sections        */
+      custom[id] = /[dmy]/i.test(code) && !/^[#0.,%\s\-()]*$/.test(code);
+    }
+
+    var block = /<cellXfs[^>]*>([\s\S]*?)<\/cellXfs>/.exec(xml);
+    if (!block) return flags;
+    var xf = /<xf\s[^>]*?(?:\/>|>[\s\S]*?<\/xf>)/g;
+    while ((m = xf.exec(block[1]))) {
+      var fid = parseInt(attr(m[0], 'numFmtId') || '0', 10);
+      flags.push(custom[fid] === true || BUILTIN_DATE_FORMATS.indexOf(fid) !== -1);
+      if (flags.length > 65535) break;
+    }
+    return flags;
+  }
+
+  /* Excel's day-serial epoch. 1899-12-30 accounts for the deliberate 1900
+     leap-year error in the file format. */
+  var EPOCH = Date.UTC(1899, 11, 30);
+  function serialToDate(n) { return new Date(EPOCH + Math.round(n) * 86400000); }
+
+  function firstValue(body) {
+    var m = /<v>([\s\S]*?)<\/v>/.exec(body);
+    return m ? m[1] : null;
+  }
+
+  function parseSheet(xml, shared, styleIsDate) {
+    var cells = new Map();
+    var maxRow = 0, maxCol = 0, seen = 0, truncated = false;
+    var re = /<c\s([^>]*?)\/>|<c\s([^>]*?)>([\s\S]*?)<\/c>/g, m;
+
+    while ((m = re.exec(xml))) {
+      if (++seen > limits.maxCellsPerSheet) { truncated = true; break; }
+      var tag = '<c ' + (m[1] || m[2]) + '>';
+      var body = m[3] || '';
+      var ref = attr(tag, 'r');
+      if (!ref) continue;
+      var col = columnIndex(ref);
+      var row = parseInt(ref.replace(/^[A-Z$]+/, ''), 10);
+      if (!row || !col || row > limits.maxRow || col > limits.maxCol) continue;
+
+      var type = attr(tag, 't') || 'n';
+      var value = null, raw;
+
+      if (type === 's') {                                    /* shared string  */
+        raw = firstValue(body);
+        if (raw !== null) {
+          var ix = parseInt(raw, 10);
+          value = (isFinite(ix) && shared[ix] !== undefined) ? shared[ix] : '';
+        }
+      } else if (type === 'inlineStr') {
+        value = runText(body);
+      } else if (type === 'str' || type === 'e') {           /* formula / error */
+        raw = firstValue(body);
+        value = raw === null ? '' : decode(raw);
+      } else if (type === 'b') {
+        raw = firstValue(body);
+        value = raw === null ? '' : (raw === '1' ? 'TRUE' : 'FALSE');
+      } else if (type === 'd') {                             /* ISO date cell   */
+        raw = firstValue(body);
+        if (raw !== null) {
+          var iso = new Date(raw);
+          if (!isNaN(iso.getTime())) value = iso;
+        }
+      } else {                                               /* number          */
+        raw = firstValue(body);
+        if (raw !== null && raw !== '') {
+          var num = parseFloat(raw);
+          var styleIx = parseInt(attr(tag, 's') || '-1', 10);
+          if (isFinite(num) && styleIx >= 0 && styleIsDate[styleIx] && num > 1) {
+            value = serialToDate(num);
+          } else {
+            value = isFinite(num) ? num : decode(raw);
+          }
+        }
+      }
+
+      if (value === null || value === '') continue;
+      if (typeof value === 'string' && value.length > limits.maxCellChars) {
+        value = value.slice(0, limits.maxCellChars);
+        truncated = true;
+      }
+      cells.set(row + ',' + col, value);
+      if (row > maxRow) maxRow = row;
+      if (col > maxCol) maxCol = col;
+    }
+
+    return { cells: cells, maxRow: maxRow, maxCol: maxCol, truncated: truncated };
+  }
+
+  /* Resolve a relationship target to a full part name inside the archive. */
+  function resolveTarget(target) {
+    if (!target) return null;
+    if (target.charAt(0) === '/') return target.slice(1);
+    return target.indexOf('xl/') === 0 ? target : 'xl/' + target.replace(/^\.\//, '');
+  }
+
+  /* The two timestamps Excel and most reporting tools write into
+     docProps/core.xml. They establish when the workbook was produced, which is
+     what "data as at" should mean. Read as short text only and not trusted
+     until MODULE 7 range-checks them. The author name in that part is
+     deliberately not read. */
+  function documentProps(xml) {
+    var out = { modified: null, created: null };
+    if (!xml) return out;
+    function tagText(name) {
+      var open = xml.indexOf('<' + name);
+      if (open === -1) return null;
+      var gt = xml.indexOf('>', open);
+      if (gt === -1 || xml.charAt(gt - 1) === '/') return null;
+      var close = xml.indexOf('</' + name + '>', gt);
+      if (close === -1) return null;
+      var body = xml.slice(gt + 1, close).trim();
+      return body.length > 64 ? null : decode(body);
+    }
+    out.modified = tagText('dcterms:modified');
+    out.created = tagText('dcterms:created');
+    return out;
+  }
+
+  function read(arrayBuffer) {
+    var zip;
+    try {
+      zip = SSB.zip.open(arrayBuffer);
+    } catch (err) {
+      return Promise.reject(err);
+    }
+
+    return zip.text('xl/workbook.xml').then(function (workbookXml) {
+      if (!workbookXml) {
+        throw new Error('That file does not contain an Excel workbook part. ' +
+          'Please check it is the RAID log saved as .xlsx.');
+      }
+      return zip.text('xl/_rels/workbook.xml.rels').then(function (relsXml) {
+        var rels = Object.create(null), m;
+        var rr = /<Relationship\s[^>]*\/>/g;
+        while ((m = rr.exec(relsXml || ''))) {
+          var id = attr(m[0], 'Id');
+          if (id) rels[id] = resolveTarget(attr(m[0], 'Target'));
+        }
+
+        return Promise.all([
+          zip.text('xl/sharedStrings.xml'),
+          zip.text('xl/styles.xml'),
+          zip.text('docProps/core.xml')
+        ]).then(function (parts) {
+          var shared = sharedStrings(parts[0]);
+          var styleIsDate = dateStyles(parts[1]);
+          var props = documentProps(parts[2]);
+
+          /* Collect the declared sheets in workbook order. */
+          var declared = [], sr = /<sheet\s[^>]*\/>/g;
+          while ((m = sr.exec(workbookXml))) {
+            var name = attr(m[0], 'name');
+            var rid = attr(m[0], 'r:id') || attr(m[0], 'id');
+            var path = rid ? rels[rid] : null;
+            if (name && path) declared.push({ name: name, path: path });
+            if (declared.length > 256) break;
+          }
+          if (!declared.length) throw new Error('No worksheets were found in that workbook.');
+
+          var sheets = Object.create(null);
+          var order = [];
+          /* Sequential rather than parallel: decompression is capped against a
+             shared budget, so serialising keeps that accounting honest. */
+          return declared.reduce(function (chain, decl) {
+            return chain.then(function () {
+              return zip.text(decl.path).then(function (xml) {
+                if (!xml) return;
+                sheets[decl.name] = parseSheet(xml, shared, styleIsDate);
+                order.push(decl.name);
+              });
+            });
+          }, Promise.resolve()).then(function () {
+            return { sheets: sheets, order: order, sharedStringCount: shared.length,
+              props: props };
+          });
+        });
+      });
+    });
+  }
+
+  return { read: read, serialToDate: serialToDate, decode: decode };
+})(SSB.limits);
+</script>
+<script>
+/* ════════════════════════════════════════════════════════════════════════════
+   MODULE 4 — SSB.normalise
+
+   Maps the cell model onto the RAID model, driven entirely by the column
+   definitions in the baked-in file structure. Nothing about the workbook layout
+   is hard-coded in this module: change a column letter in the JSON block and
+   both the parser and the CSV export follow.
+
+   It also produces a load report — what was read, what was skipped and which
+   names did not match the approved lists — which the Data quality view shows.
+   Silent coercion is what makes a dashboard quietly wrong, so anything dropped
+   or altered is counted and surfaced.
+   ════════════════════════════════════════════════════════════════════════════ */
+SSB.normalise = (function (structure, limits) {
+  'use strict';
+
+  /* ── value cleaning ─────────────────────────────────────────────────────── */
+
+  /* Excel error literals and a bare zero are treated as "not recorded". A bare
+     zero in these columns is a formula artefact in the source workbook, never a
+     real value. */
+  var ERROR_LITERALS = { '#N/A': 1, '#REF!': 1, '#VALUE!': 1, '#DIV/0!': 1, '#NAME?': 1,
+    '#NULL!': 1, '#NUM!': 1, '#SPILL!': 1, '0': 1 };
+
+  /* Placeholders people type into date columns instead of leaving them blank. */
+  var DATE_PLACEHOLDERS = { 'dd/mm/yyyy': 1, 'tbc': 1, 'na': 1, 'n/a': 1, 'none': 1, '-': 1, '': 1 };
+
+  function tidy(value) {
+    if (value === undefined || value === null) return '';
+    if (typeof value !== 'string') return value;
+    return value
+      .replace(/\u200b/g, '')                  /* zero-width space            */
+      .replace(/\u00a0/g, ' ')                 /* non-breaking space          */
+      .replace(/\r\n?/g, '\n')                 /* normalise line endings      */
+      .replace(/[ \t]+\n/g, '\n')
+      .trim();
+  }
+
+  function pad2(n) { return (n < 10 ? '0' : '') + n; }
+  function ukDate(d) {
+    return pad2(d.getUTCDate()) + '/' + pad2(d.getUTCMonth() + 1) + '/' + d.getUTCFullYear();
+  }
+  function isoDate(d) {
+    return d.getUTCFullYear() + '-' + pad2(d.getUTCMonth() + 1) + '-' + pad2(d.getUTCDate());
+  }
+
+  function asText(value) {
+    value = tidy(value);
+    if (value === '') return '';
+    if (value instanceof Date) return ukDate(value);
+    if (typeof value === 'number') return value === 0 ? '' : String(value);
+    var s = String(value).trim();
+    return ERROR_LITERALS[s] ? '' : s;
+  }
+
+  /* Dates are kept as a pair: t is exactly what the log says, for display;
+     d is a sortable ISO date, empty when the value is not a real date. Free
+     text such as "end of prog" is preserved in t and simply never sorts or
+     counts as overdue. */
+  function asDate(value, report) {
+    value = tidy(value);
+    if (value === '') return { t: '', d: '' };
+    if (value instanceof Date) return { t: ukDate(value), d: isoDate(value) };
+
+    if (typeof value === 'number') {
+      if (value > 20000 && value < 80000) {                  /* plausible serial */
+        var fromSerial = SSB.xlsx.serialToDate(value);
+        return { t: ukDate(fromSerial), d: isoDate(fromSerial) };
+      }
+      return { t: '', d: '' };
+    }
+
+    var s = String(value).trim();
+    var folded = s.toLowerCase();
+    if (DATE_PLACEHOLDERS[folded]) {
+      return { t: (folded === 'dd/mm/yyyy' || folded === 'none') ? '' : s, d: '' };
+    }
+
+    /* Day-first, as the RAID log is maintained in the UK. */
+    var m = /^(\d{1,2})[/\-.](\d{1,2})[/\-.](\d{2,4})$/.exec(s);
+    if (m) {
+      var day = +m[1], month = +m[2], year = +m[3];
+      if (year < 100) year += 2000;
+      var d = new Date(Date.UTC(year, month - 1, day));
+      if (!isNaN(d.getTime()) && d.getUTCMonth() === month - 1 && d.getUTCDate() === day) {
+        return { t: ukDate(d), d: isoDate(d) };
+      }
+    }
+    if (report) report.freeTextDates++;
+    return { t: s, d: '' };
+  }
+
+  /* Big bet names arrive with underscores from the log's data-validation
+     dropdowns. Resolve against the approved aliases, then the approved list,
+     then fall back to the tidied text so nothing is silently dropped. */
+  function asBet(value, report) {
+    var text = asText(value);
+    if (!text) return '';
+    var key = text.trim().toLowerCase().replace(/ /g, '_');
+    if (structure.betAliases[key]) return structure.betAliases[key];
+    var spaced = text.replace(/_/g, ' ').replace(/\s+/g, ' ').trim();
+    var known = structure.lookup.bet[structure.lookup.fold(spaced)];
+    if (known) return known;
+    if (report) report.unknownBets[spaced] = (report.unknownBets[spaced] || 0) + 1;
+    return spaced;
+  }
+
+  function asStatus(value) {
+    var s = asText(value);
+    if (!s) return '';
+    var f = s.trim().toLowerCase();
+    if (f.indexOf('closed') === 0) return 'Closed';
+    if (f.indexOf('open') === 0) return 'Open';
+    if (f === 'valid') return 'Valid';
+    if (f === 'invalid') return 'Invalid';
+    return s.trim();
+  }
+
+  var LEVEL_NAMES = ['critical', 'high', 'medium', 'low'];
+  function asLevel(value) {
+    var s = asText(value);
+    if (!s) return '';
+    var f = s.trim().toLowerCase();
+    for (var i = 0; i < LEVEL_NAMES.length; i++) {
+      if (f.indexOf(LEVEL_NAMES[i]) === 0) {
+        return LEVEL_NAMES[i].charAt(0).toUpperCase() + LEVEL_NAMES[i].slice(1);
+      }
+    }
+    return s.trim();
+  }
+
+  var DEP_STATUS = { 'on track': 'On Track', 'at risk': 'At Risk', 'overdue': 'Overdue',
+    'closed': 'Closed', 'open': 'Open', 'tbc': 'TBC' };
+  function asDepStatus(value) {
+    var s = asText(value);
+    var f = s.trim().toLowerCase();
+    return DEP_STATUS[f] || s.trim();
+  }
+
+  /* ── sheet lookup ───────────────────────────────────────────────────────── */
+
+  /* Match tab names ignoring case and spacing, so "Data Validation",
+     "DataValidation" and "data validation" all resolve. */
+  function findSheet(sheets, wanted) {
+    var target = wanted.toLowerCase().replace(/\s+/g, '');
+    var names = Object.keys(sheets);
+    for (var i = 0; i < names.length; i++) {
+      if (names[i].toLowerCase().replace(/\s+/g, '') === target) return sheets[names[i]];
+    }
+    return null;
+  }
+
+  /* ── row reading ────────────────────────────────────────────────────────── */
+
+  /* TEMPLATE TEXT — the reason a "blank" row can look occupied.
+     ────────────────────────────────────────────────────────────────────────────
+     The RAID log's unused rows are not actually empty: the reference is filled
+     in by formula and the description carries the log's own template sentence,
+     something along the lines of "Outbound project (column F) has a dependency
+     on Inbound Project (column H) to …". v2.1 tried to match that sentence
+     exactly, which fails the moment the wording is edited.
+
+     v2.2 does not depend on the wording at all. Two independent detectors run,
+     and everything either of them suppresses is listed in the Data quality view
+     with its row count, so nothing disappears without saying so:
+
+       1. NO CONTENT WORDS. Strip column references, punctuation, digits and the
+          vocabulary that templates are built from (outbound, inbound, project,
+          dependency, title, insert, TBC, dd/mm/yyyy and so on). If nothing is
+          left, the cell is scaffolding, not content. This catches a template
+          however it is phrased, and even in a row that appears only once.
+
+       2. REPEATED IDENTICALLY. A value appearing verbatim in ten or more rows of
+          the same column is a fill-down default, not ten people writing the same
+          sentence. This is the safety net for wording no list could anticipate.
+          It stops a value counting as content but leaves it on screen, because
+          suppressing text that might be real is worse than showing it.
+     ──────────────────────────────────────────────────────────────────────────── */
+
+  var TEMPLATE_WORDS = new RegExp('\\b(' + [
+    'outbound', 'inbound', 'column', 'coloumn', 'col', 'project', 'projects',
+    'workstream', 'workstreams', 'bet', 'bets', 'initiative', 'initiatives',
+    'dependency', 'dependencies', 'depends', 'dependent', 'dependant',
+    'risk', 'risks', 'issue', 'issues', 'assumption', 'assumptions',
+    'title', 'description', 'desc', 'detail', 'details', 'comment', 'comments',
+    'summary', 'note', 'notes', 'reference', 'ref', 'number', 'following',
+    'above', 'below', 'further', 'etc', 'relevant', 'applicable', 'other', 'others',
+    'insert', 'enter', 'add', 'type', 'here', 'text', 'name', 'names', 'tbd', 'tbc',
+    'na', 'n/a', 'none', 'nil', 'blank', 'example', 'eg', 'ie', 'xx', 'xxx',
+    'dd', 'mm', 'yy', 'yyyy', 'date', 'update', 'updated', 'progress', 'status',
+    'has', 'have', 'having', 'is', 'are', 'was', 'be', 'been', 'will', 'would',
+    'a', 'an', 'the', 'of', 'on', 'onto', 'upon', 'to', 'for', 'from', 'with',
+    'and', 'or', 'in', 'into', 'by', 'at', 'as', 'that', 'this', 'there', 'it',
+    'if', 'no', 'not', 'their', 'its', 'we', 'us', 'our', 'you', 'they'
+  ].join('|') + ')\\b', 'g');
+
+  /* A loose key for comparing two pieces of text: case, spacing and punctuation
+     are ignored, so "There is a risk that… due to…" and "There is a risk that
+     ... due to ..." are recognised as the same template. */
+  function foldKey(text) {
+    return String(text).toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim();
+  }
+
+  /* Detector 1 — nothing but template scaffolding is left after stripping.
+
+     Only ever applied to free-prose columns (see "prose" in the file structure).
+     A scoring column holding "3" would otherwise look like scaffolding, because
+     stripping the digits leaves nothing — blanking those would quietly empty the
+     risk matrix. The numeric guard below is a second line of defence in case a
+     prose column is ever given a numeric value. */
+  function hasNoContentWords(text) {
+    if (!text) return false;
+    var raw = String(text).trim();
+    if (/^[\d\s.,%/:;()\-+]+$/.test(raw)) return false;    /* numbers are data */
+    var stripped = raw.toLowerCase()
+      .replace(/\(\s*col[ou]*umn?\s*[a-z]{1,3}\s*\)/g, ' ')  /* (column F), (coloumn H) */
+      .replace(/[^a-z/]+/g, ' ')                             /* drop digits and marks   */
+      .replace(TEMPLATE_WORDS, ' ')
+      .replace(/\b[a-z]\b/g, ' ')                            /* stray single letters    */
+      .replace(/\s+/g, ' ')
+      .trim();
+    return stripped === '';
+  }
+
+  /* Detector 3 — the log's own example text.
+     ────────────────────────────────────────────────────────────────────────────
+     Each RAID tab carries its instructions and a worked example in the rows
+     above the first data row: the Risks tab starts at row 9, so rows 1 to 8 hold
+     headings and a specimen entry. Whatever wording the template uses, it is
+     written down there. Harvesting those cells per column and matching data cells
+     against them identifies template text exactly, with no guessing and nothing
+     hard-coded — if the log's phrasing is rewritten tomorrow, this follows it,
+     because it reads the phrasing out of the workbook itself. */
+  function harvestExampleText(sheet, def) {
+    var byField = {};
+    def.columns.forEach(function (col) {
+      if (!col.prose) return;                        /* free-prose columns only */
+      var seen = {};
+      for (var r = 1; r < def.firstDataRow; r++) {
+        var value = asText(sheet.cells.get(r + ',' + col.index));
+        if (value) seen[foldKey(value)] = value;
+      }
+      byField[col.field] = seen;
+    });
+    return byField;
+  }
+
+  /* Optional, and only cosmetic: where a real description was typed after the
+     template sentence, remove the sentence so the text reads cleanly. Two shapes
+     are recognised — an inbound reference in brackets, or one in quotes — and
+     both are length-bounded so a sentence with neither is left completely alone
+     rather than over-trimmed. Counting does not depend on any of this. */
+  function stripTemplatePrefix(text) {
+    var marker = /\bhas\s+a\s+dependency\s+on\b/i.exec(text);
+    if (!marker || !/outbound/i.test(text.slice(0, marker.index))) return text;
+    var after = text.slice(marker.index + marker[0].length);
+    if (!/^\s*["'\u201c]?\s*inbound\b/i.test(after)) return text;
+
+    var bracketed = /^\s*["'\u201c]?\s*inbound\b[^(\n]{0,60}\([^)\n]{0,40}\)\s*["'\u201d]?\s*(?:to\b\s*\u2026?)?\s*/i;
+    var quoted    = /^\s*["'\u201c]\s*inbound\b[^"\u201d\n]{0,80}["'\u201d]\s*(?:to\b\s*\u2026?)?\s*/i;
+
+    var stripped = after.replace(bracketed, '');
+    if (stripped === after) stripped = after.replace(quoted, '');
+    if (stripped === after) return text;               /* recognised nothing */
+    return stripped.replace(/^[\s\-:;,.\u2026]+/, '').trim();
+  }
+
+  /* Clean one cell according to its column definition. */
+  function cleanCell(raw, col, report) {
+    switch (col.type) {
+      case 'bet':       return asBet(raw, report);
+      case 'date':      return asDate(raw, report);
+      case 'status':    return asStatus(raw);
+      case 'level':     return asLevel(raw);
+      case 'depstatus': return asDepStatus(raw);
+      default: {
+        var text = asText(raw);
+        if (col.stripTemplate && text) text = stripTemplatePrefix(text);
+        if (col.blankIf && text) {
+          var folded = text.replace(/\s+/g, ' ').trim().toLowerCase();
+          if (col.blankIf.indexOf(folded) !== -1) text = '';
+        }
+        return text;
+      }
+    }
+  }
+
+  /* True when a cleaned value actually carries information. Date fields count
+     only if they resolved to a real date, not free text such as "TBC". */
+  function hasSubstance(value) {
+    if (value === null || value === undefined) return false;
+    if (typeof value === 'object') return !!value.d;
+    return String(value).trim() !== '';
+  }
+
+  /* Which columns decide whether a row is a real item. Named per tab in the
+     file structure so the rule is visible rather than buried in code. */
+  function substanceColumns(def) {
+    return def.keepIfAny.map(function (letter) { return def.byLetter[letter]; });
+  }
+
+  /* Run all three detectors over one column of candidate rows.
+
+     Values that are example text or pure scaffolding are blanked outright, so
+     they leave both the counts and the screen. Values that are merely repeated
+     stop counting as content but stay visible, because hiding text that might be
+     real is the worse mistake. Everything suppressed is recorded for the report,
+     so no row ever disappears without the Data quality view saying why. */
+  function suppressTemplates(candidates, col, def, report, examples) {
+    var exact = {}, loose = {};
+    candidates.forEach(function (row) {
+      var v = row.values[col.field];
+      if (typeof v !== 'string' || !v) return;
+      exact[v] = (exact[v] || 0) + 1;
+      var key = foldKey(v);
+      loose[key] = (loose[key] || 0) + 1;
+    });
+
+    var exampleText = (examples && examples[col.field]) || {};
+
+    Object.keys(exact).forEach(function (value) {
+      var key = foldKey(value);
+      var isExample = exampleText[key] !== undefined;
+      var noWords = hasNoContentWords(value);
+      var repeated = loose[key] >= limits.templateRepeatThreshold;
+      if (!isExample && !noWords && !repeated) return;
+
+      var blank = isExample || noWords;
+      report.templateValues.push({
+        sheet: def.sheet,
+        heading: col.heading,
+        value: value,
+        rows: loose[key],
+        blanked: blank,
+        reason: isExample ? 'matches the example text above row ' + def.firstDataRow
+          : noWords ? 'no content words — template scaffolding'
+          : 'repeated in ' + loose[key] + ' rows — fill-down default'
+      });
+
+      candidates.forEach(function (row) {
+        if (row.values[col.field] !== value) return;
+        if (blank) row.values[col.field] = '';
+        else row.ignore[col.field] = true;
+      });
+    });
+  }
+
+  function readCategory(sheet, def, report) {
+    var stats = {
+      scanned: 0, kept: 0, skippedNoRef: 0,
+      skippedEmpty: 0,          /* total excluded: reference-only + half-filled */
+      skippedRefOnly: 0,        /* nothing at all beyond the reference          */
+      skippedNoSubstance: 0,    /* something, but no title and no description   */
+      capped: false, refOnlySamples: [], partialSamples: []
+    };
+    if (!sheet) return { rows: [], stats: stats };
+
+    var lastRow = Math.min(sheet.maxRow, limits.maxRow);
+    var refCol = def.byField.ref;
+    var examples = harvestExampleText(sheet, def);
+    var candidates = [];
+
+    /* Pass 1 — every row with a valid reference, fully cleaned. */
+    for (var r = def.firstDataRow; r <= lastRow; r++) {
+      stats.scanned++;
+
+      /* A RAID row is identified by its reference. Anything without one is a
+         heading, a spacer or a note, and is not data. */
+      var ref = asText(sheet.cells.get(r + ',' + refCol.index));
+      if (!ref || ref.toUpperCase().indexOf(def.refPrefix) !== 0) {
+        if (ref) stats.skippedNoRef++;
+        continue;
+      }
+
+      var values = {};
+      def.columns.forEach(function (col) {
+        values[col.field] = (col.type === 'ref')
+          ? ref.replace(/\s*-\s*/g, '-')
+          : cleanCell(sheet.cells.get(r + ',' + col.index), col, report);
+      });
+      candidates.push({ row: r, values: values, ignore: {} });
+
+      if (candidates.length >= limits.maxRowsPerCategory) { stats.capped = true; break; }
+    }
+
+    /* Pass 2 — template detection, which needs a whole column at once. Applied
+       to the free-prose columns only — titles, descriptions, plans and progress
+       notes — so that example text is cleared out of those as well, while coded
+       and scored columns such as impact and likelihood are never touched. */
+    var proseColumns = def.columns.filter(function (col) { return col.prose; });
+    proseColumns.forEach(function (col) {
+      suppressTemplates(candidates, col, def, report, examples);
+    });
+
+    /* Pass 3 — decide what is a real item.
+
+       Two exclusions, counted separately so both are visible:
+
+         reference only   nothing whatever survives cleaning except the
+                          reference itself. A pre-numbered blank row.
+
+         no substance     something survives — usually a big bet or a status
+                          picked from a dropdown — but there is no title and no
+                          description, so the item cannot be read, reported or
+                          acted on. Which columns count is set per tab in the
+                          file structure and shown in the Data contract view. */
+    var substance = substanceColumns(def);
+    var rows = [];
+
+    candidates.forEach(function (candidate) {
+      var values = candidate.values;
+
+      var filled = def.columns.filter(function (col) {
+        return col.type !== 'ref' && hasSubstance(values[col.field]);
+      });
+
+      var real = substance.some(function (col) {
+        return !candidate.ignore[col.field] && hasSubstance(values[col.field]);
+      });
+
+      if (!real) {
+        stats.skippedEmpty++;
+        if (!filled.length) {
+          stats.skippedRefOnly++;
+          if (stats.refOnlySamples.length < 8) {
+            stats.refOnlySamples.push({ ref: values.ref, row: candidate.row });
+          }
+        } else {
+          stats.skippedNoSubstance++;
+          if (stats.partialSamples.length < 8) {
+            stats.partialSamples.push({
+              ref: values.ref, row: candidate.row,
+              filled: filled.map(function (col) { return col.heading; })
+            });
+          }
+        }
+        return;
+      }
+
+      values.sourceRow = candidate.row;
+      rows.push(values);
+      stats.kept++;
+    });
+
+    return { rows: rows, stats: stats };
+  }
+
+  /* ── main entry point ───────────────────────────────────────────────────── */
+
+  function build(workbook, meta) {
+    var sheets = workbook.sheets;
+
+    var report = {
+      source: meta.source,
+      loaded: meta.loaded,
+      sizeBytes: meta.sizeBytes,
+      tabsInWorkbook: workbook.order.slice(),
+      tabsMissing: [],
+      truncatedSheets: [],
+      freeTextDates: 0,
+      unknownBets: {},
+      unknownInitiatives: {},
+      templateValues: [],
+      categories: {},
+      duplicateRefs: [],
+      validationRowsRead: 0,
+      validationSheetPresent: false
+    };
+
+    /* Required tabs. Without these there is nothing to show, so fail clearly
+       rather than rendering an empty dashboard that looks like good news. */
+    var required = SSB.CATEGORIES.map(function (key) { return structure.sheets[key]; });
+    required.forEach(function (def) {
+      if (!findSheet(sheets, def.sheet)) report.tabsMissing.push(def.sheet);
+    });
+    if (report.tabsMissing.length) {
+      throw new Error('These tabs are missing from the workbook: ' +
+        report.tabsMissing.join(', ') + '. Please check it is the SSB Programme RAID Log.');
+    }
+
+    Object.keys(sheets).forEach(function (name) {
+      if (sheets[name].truncated) report.truncatedSheets.push(name);
+    });
+
+    /* Read each category. */
+    var model = {};
+    SSB.CATEGORIES.forEach(function (key) {
+      var def = structure.sheets[key];
+      var result = readCategory(findSheet(sheets, def.sheet), def, report);
+      model[key] = result.rows;
+      report.categories[key] = result.stats;
+    });
+
+    /* The only dependency tidy-up left to do after cleaning: where the
+       open/closed column was never filled in, derive it from the RAG status so
+       the item still sorts and filters sensibly. Title placeholders and the
+       template description are handled by the column definitions. */
+    model.dependencies.forEach(function (dep) {
+      if (!dep.status) dep.status = (dep.depStatus === 'Closed') ? 'Closed' : 'Open';
+    });
+
+    /* Duplicate references are worth flagging: they usually mean a row was
+       copied and not renumbered, which double-counts in every total. */
+    var refSeen = Object.create(null);
+    SSB.CATEGORIES.forEach(function (key) {
+      model[key].forEach(function (item) {
+        var k = key + '|' + item.ref;
+        if (refSeen[k]) {
+          if (report.duplicateRefs.indexOf(item.ref) === -1) report.duplicateRefs.push(item.ref);
+        }
+        refSeen[k] = true;
+      });
+    });
+
+    /* ── initiative reference lists ───────────────────────────────────────────
+       Start from the approved lists baked into this file, then add anything the
+       workbook's own Data Validation tab declares, then anything actually used
+       by a RAID row. Names that were not already approved are reported so the
+       log's dropdowns and its rows can be brought back into line. */
+    var lists = {};
+    Object.keys(structure.validation).forEach(function (bet) {
+      lists[bet] = structure.validation[bet].slice();
+    });
+
+    function addName(bet, initiative, fromWorkbook) {
+      if (!bet || !initiative) return;
+      if (!lists[bet]) lists[bet] = [];
+      var folded = structure.lookup.fold(initiative);
+      var already = lists[bet].some(function (n) { return structure.lookup.fold(n) === folded; });
+      if (!already) {
+        lists[bet].push(initiative);
+        if (fromWorkbook && !structure.lookup.initiative[folded]) {
+          report.unknownInitiatives[initiative] =
+            (report.unknownInitiatives[initiative] || 0) + 1;
+        }
+      }
+    }
+
+    var validationSheet = findSheet(sheets, structure.validationSheet.sheet);
+    if (validationSheet) {
+      report.validationSheetPresent = true;
+      var vs = structure.validationSheet;
+      var lastValidationRow = Math.min(validationSheet.maxRow, limits.maxRow);
+      for (var r = vs.firstDataRow; r <= lastValidationRow; r++) {
+        var bet = asBet(validationSheet.cells.get(r + ',' + vs.betIndex), null);
+        if (!bet) continue;
+        report.validationRowsRead++;
+        addName(bet, asText(validationSheet.cells.get(r + ',' + vs.initiativeIndex)), true);
+      }
+    }
+
+    ['risks', 'issues', 'assumptions'].forEach(function (key) {
+      model[key].forEach(function (item) { addName(item.bet, item.initiative, true); });
+    });
+    model.dependencies.forEach(function (dep) {
+      addName(dep.outBet, dep.outInit, true);
+      addName(dep.inBet, dep.inInit, true);
+    });
+
+    Object.keys(lists).forEach(function (bet) {
+      lists[bet].sort(function (a, b) {
+        return a.toLowerCase() < b.toLowerCase() ? -1 : 1;
+      });
+    });
+
+    return {
+      meta: { source: meta.source, loaded: meta.loaded, sizeBytes: meta.sizeBytes,
+        props: meta.props || null, dateSource: null, dateNote: null,
+        candidates: [], detected: null },
+      bets: structure.bets.slice(),
+      betInitiatives: lists,
+      report: report,
+      risks: model.risks,
+      issues: model.issues,
+      assumptions: model.assumptions,
+      dependencies: model.dependencies
+    };
+  }
+
+  function fromArrayBuffer(arrayBuffer, meta) {
+    return SSB.xlsx.read(arrayBuffer).then(function (workbook) {
+      /* Carry the workbook's own timestamps into the model so the caller can
+         settle the reporting date from them once parsing is done. */
+      var m = {};
+      Object.keys(meta || {}).forEach(function (k) { m[k] = meta[k]; });
+      m.props = workbook.props || null;
+      return build(workbook, m);
+    });
+  }
+
+  return { fromArrayBuffer: fromArrayBuffer, build: build, asText: asText, asDate: asDate };
+})(SSB.structure, SSB.limits);
+</script>
+<script>
+/* ════════════════════════════════════════════════════════════════════════════
+   MODULE 5 — SSB.dom
+
+   Element builders. This module exists so that the rest of the application can
+   never assemble markup from strings.
+
+   The rule this enforces: values that came from the workbook are only ever
+   written through textContent or as a text node. They are never concatenated
+   into HTML and never passed to innerHTML, insertAdjacentHTML, DOMParser or
+   an attribute that can hold code. That makes script injection through a
+   crafted spreadsheet a structural impossibility rather than something the
+   escaping happens to catch — the unsafe sinks are simply never reached,
+   because this module offers no way to reach them.
+
+   Two deliberate restrictions:
+   - the "style" property accepts only strings built from the fixed palette and
+     numbers computed in this application, never workbook text;
+   - event handlers are attached with addEventListener, never as attributes.
+   ════════════════════════════════════════════════════════════════════════════ */
+SSB.dom = (function () {
+  'use strict';
+
+  var SVG_NS = 'http://www.w3.org/2000/svg';
+  var XLINK_NS = 'http://www.w3.org/1999/xlink';
+
+  /* Properties handled as real DOM properties rather than attributes. */
+  var DIRECT = { value: 1, checked: 1, disabled: 1, selected: 1, hidden: 1, className: 1 };
+
+  function append(node, child) {
+    if (child === null || child === undefined || child === false) return;
+    if (Array.isArray(child)) {
+      child.forEach(function (c) { append(node, c); });
+      return;
+    }
+    if (typeof child === 'string' || typeof child === 'number') {
+      node.appendChild(document.createTextNode(String(child)));
+      return;
+    }
+    node.appendChild(child);
+  }
+
+  /* el('td', {class:'ref', text:item.ref}, [children])
+     - text:  set via textContent, so any workbook value is inert
+     - on:    { click: fn } attached with addEventListener
+     - other: setAttribute, or a direct property where that is the right home */
+  function el(tag, props, children) {
+    var node = document.createElement(tag);
+    if (props) {
+      Object.keys(props).forEach(function (key) {
+        var v = props[key];
+        if (v === null || v === undefined || v === false) return;
+        if (key === 'text') { node.textContent = String(v); return; }
+        if (key === 'class') { node.className = v; return; }
+        if (key === 'on') {
+          Object.keys(v).forEach(function (evt) { node.addEventListener(evt, v[evt]); });
+          return;
+        }
+        if (DIRECT[key]) { node[key] = v; return; }
+        node.setAttribute(key, String(v));
+      });
+    }
+    append(node, children);
+    return node;
+  }
+
+  function frag(children) {
+    var f = document.createDocumentFragment();
+    append(f, children);
+    return f;
+  }
+
+  /* Icons come from the static <symbol> sprite in the markup. The only input is
+     an identifier chosen by this application, never anything from a workbook. */
+  function icon(name, size) {
+    var svg = document.createElementNS(SVG_NS, 'svg');
+    svg.setAttribute('width', String(size || 13));
+    svg.setAttribute('height', String(size || 13));
+    svg.setAttribute('aria-hidden', 'true');
+    svg.setAttribute('focusable', 'false');
+    var use = document.createElementNS(SVG_NS, 'use');
+    use.setAttribute('href', '#i-' + name);
+    use.setAttributeNS(XLINK_NS, 'xlink:href', '#i-' + name);
+    svg.appendChild(use);
+    return svg;
+  }
+
+  function clear(node) {
+    while (node.firstChild) node.removeChild(node.firstChild);
+    return node;
+  }
+
+  function fill(node, children) {
+    clear(node);
+    append(node, children);
+    return node;
+  }
+
+  function byId(id) { return document.getElementById(id); }
+
+  return { el: el, frag: frag, icon: icon, clear: clear, fill: fill, byId: byId };
+})();
+</script>
+<script>
+/* ════════════════════════════════════════════════════════════════════════════
+   MODULE 6 — SSB.app
+
+   State, filtering, the views and the CSV export.
+
+   Two conventions hold throughout and are worth knowing before reading:
+
+   1. One filter set, applied everywhere. The sidebar counts, the metric cards,
+      the overview table and the item tables all run through the same filtered()
+      call, so every number on screen reconciles with every other number. When a
+      filter narrows the view, the page says so in plain English rather than
+      quietly showing a smaller total.
+
+   2. A dependency belongs to its outbound bet — the one that raised it and has
+      to deliver. It therefore appears once, under the owner, rather than twice.
+      The inbound bet is displayed and searchable but does not drive filtering.
+   ════════════════════════════════════════════════════════════════════════════ */
+(function (dom, structure, limits) {
+  'use strict';
+
+  var el = dom.el, frag = dom.frag, icon = dom.icon, fill = dom.fill, byId = dom.byId;
+
+  /* ── constants ──────────────────────────────────────────────────────────── */
+  var LEVELS = ['Critical', 'High', 'Medium', 'Low', 'Unrated'];
+  var LEVEL_COLOUR = {
+    Critical: 'var(--red-strong)', High: 'var(--red)', Medium: 'var(--rag-amber)',
+    Low: 'var(--rag-g)', Unrated: 'var(--surface-3)'
+  };
+  var LEVEL_BADGE = {
+    Critical: 'badge-solid', High: 'badge-red', Medium: 'badge-amber',
+    Low: 'badge-green', Unrated: 'badge-neutral'
+  };
+  var CATEGORY_NAME = {
+    risks: 'Risk', issues: 'Issue', assumptions: 'Assumption', dependencies: 'Dependency'
+  };
+  var MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+  var KINDS = SSB.CATEGORIES;
+
+  var SECTIONS = [
+    { key: 'overview', label: 'Overview', group: 'Summary', icon: 'overview',
+      title: 'Overview', sub: 'All RAID items across the eight big bets' },
+    { key: 'risks', label: 'Risks', group: 'RAID log', icon: 'risks',
+      title: 'Risks', sub: 'Things that could go wrong, with mitigation plans and progress' },
+    { key: 'assumptions', label: 'Assumptions', group: 'RAID log', icon: 'assumptions',
+      title: 'Assumptions', sub: 'What we are taking as given, and how each will be validated' },
+    { key: 'issues', label: 'Issues', group: 'RAID log', icon: 'issues',
+      title: 'Issues', sub: 'Things that have already gone wrong, with resolution plans' },
+    { key: 'dependencies', label: 'Dependencies', group: 'RAID log', icon: 'dependencies',
+      title: 'Dependencies', sub: 'What each bet owes another bet or someone outside SSB, grouped by the outbound owner' },
+    { key: 'all', label: 'All RAID items', group: 'RAID log', icon: 'all',
+      title: 'All RAID items', sub: 'Risks, issues, assumptions and dependencies in one view' },
+    { key: 'quality', label: 'Data quality', group: 'This load', icon: 'quality',
+      title: 'Data quality', sub: 'What was read from the workbook, what was skipped, and what needs tidying' },
+    { key: 'contract', label: 'Data contract', group: 'This load', icon: 'contract',
+      title: 'Data contract', sub: 'The sheet and column layout this dashboard expects, and the approved names' }
+  ];
+  /* The only view that means anything before a workbook is loaded. */
+  var ALWAYS_AVAILABLE = { contract: true };
+
+  /* ── state ──────────────────────────────────────────────────────────────── */
+  var DATA = null;
+  var SYSTEM_TODAY = todayISO();
+
+  /* AS_AT is the date the RAID snapshot was produced, not the date this file
+     happens to be opened. It drives the stamp, every overdue calculation and
+     the export filename, so reopening an older download shows the picture as
+     it stood then rather than silently re-ageing it against today.
+
+     Resolution order is the most recent date the workbook carries: its own
+     last-saved property, then its created property, then the file's modified
+     date on this device (for a download, the moment it arrived). A report is
+     downloaded on the day it is refreshed, so the newest of those is the day
+     its data is good for; earlier ones usually belong to a template or the
+     report definition. The system clock is a last resort and is labelled as
+     one on screen. It can be overridden by hand in the Data quality view. */
+  var AS_AT = SYSTEM_TODAY;
+
+  var DATE_SOURCE_LABEL = {
+    saved: 'from the report', created: 'from the report',
+    file: 'from the file date', system: 'today\u2019s date', manual: 'set by hand'
+  };
+
+  function plausibleDate(iso) {
+    if (!iso || !/^\d{4}-\d{2}-\d{2}$/.test(iso)) return false;
+    if (isNaN(Date.parse(iso + 'T00:00:00'))) return false;
+    var y = +iso.slice(0, 4);
+    return y >= 2015 && y <= (+SYSTEM_TODAY.slice(0, 4)) + 1;
+  }
+
+  function isoOfDate(d) {
+    function p(n) { return (n < 10 ? '0' : '') + n; }
+    return d.getFullYear() + '-' + p(d.getMonth() + 1) + '-' + p(d.getDate());
+  }
+
+  function dateCandidates(file, props) {
+    var raw = [];
+    if (props && props.modified) {
+      raw.push({ iso: String(props.modified).slice(0, 10), source: 'saved',
+        label: 'Report last saved', note: 'the workbook\u2019s last-saved property' });
+    }
+    if (props && props.created) {
+      raw.push({ iso: String(props.created).slice(0, 10), source: 'created',
+        label: 'Report created', note: 'the workbook\u2019s created property' });
+    }
+    if (file && file.lastModified) {
+      raw.push({ iso: isoOfDate(new Date(file.lastModified)), source: 'file',
+        label: 'Downloaded to this device',
+        note: 'the file\u2019s date on this device, i.e. when it was downloaded' });
+    }
+    raw.push({ iso: SYSTEM_TODAY, source: 'system', label: 'Today on this device',
+      note: 'today\u2019s date \u2014 no usable timestamp was found in the workbook or the file' });
+
+    var seen = Object.create(null), out = [];
+    raw.forEach(function (c) {
+      if (!plausibleDate(c.iso) || seen[c.iso]) return;
+      seen[c.iso] = true;
+      out.push(c);
+    });
+    out.sort(function (a, b) {
+      if (a.source === 'system') return 1;
+      if (b.source === 'system') return -1;
+      return a.iso < b.iso ? 1 : a.iso > b.iso ? -1 : 0;
+    });
+    return out;
+  }
+
+  function setAsAt(iso, source, note) {
+    AS_AT = plausibleDate(iso) ? iso : SYSTEM_TODAY;
+    if (DATA && DATA.meta) {
+      DATA.meta.loaded = AS_AT;
+      DATA.meta.dateSource = source;
+      DATA.meta.dateNote = note;
+    }
+  }
+  var expanded = {};
+  /* Reference order by default, so a section reads like the log itself. Any
+     column heading still re-sorts on click. */
+  var sortState = {
+    risks: { key: 'ref', dir: 'asc' },
+    issues: { key: 'ref', dir: 'asc' },
+    assumptions: { key: 'ref', dir: 'asc' },
+    dependencies: { key: 'ref', dir: 'asc' }
+  };
+  var state = {
+    bet: 'ALL', view: 'overview', status: 'Open',
+    levels: {}, initiative: 'ALL', overdueOnly: false, q: ''
+  };
+  LEVELS.forEach(function (l) { state.levels[l] = true; });
+
+  /* ── small helpers ──────────────────────────────────────────────────────── */
+  function todayISO() {
+    var d = new Date();
+    function p(n) { return (n < 10 ? '0' : '') + n; }
+    return d.getFullYear() + '-' + p(d.getMonth() + 1) + '-' + p(d.getDate());
+  }
+  function longDate(iso) {
+    if (!iso) return '';
+    var p = iso.split('-');
+    return parseInt(p[2], 10) + ' ' + MONTHS[parseInt(p[1], 10) - 1] + ' ' + p[0];
+  }
+  function daysBetween(a, b) { return Math.round((Date.parse(b) - Date.parse(a)) / 86400000); }
+  function lvl(item) { return item.level || 'Unrated'; }
+  function plural(n, word) { return n + ' ' + word + (n === 1 ? '' : 's'); }
+  function fileSize(bytes) {
+    if (!bytes) return '—';
+    if (bytes < 1024) return bytes + ' B';
+    if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(0) + ' KB';
+    return (bytes / (1024 * 1024)).toFixed(1) + ' MB';
+  }
+
+  /* Rows sometimes repeat the bet name in the initiative column (Data / Data).
+     Don't print the same thing twice. */
+  function initText(bet, initiative) {
+    if (!initiative) return '';
+    if (bet && initiative.trim().toLowerCase() === bet.trim().toLowerCase()) return '';
+    return initiative;
+  }
+
+  function dueField(kind) { return kind === 'dependencies' ? 'deadline' : 'due'; }
+
+  /* Overdue is measured against the due date for open items only. A closed item
+     is reported as closed, not as overdue — closing something late does not
+     leave it outstanding. Items with no real date cannot be overdue. */
+  function overdueInfo(item, field) {
+    var d = item[field] || { t: '', d: '' };
+    if (item.status === 'Closed') return { state: 'closed', label: 'Closed', days: 0 };
+    if (!d.d) {
+      /* A deadline recorded as prose cannot be measured. The Overdue column
+         says so briefly and keeps the wording itself in the date column, where
+         it now wraps, rather than echoing a sentence into a narrow cell. */
+      if (!d.t) return { state: 'nodate', label: 'No due date', days: 0, note: '' };
+      var short = d.t.length <= 12 ? d.t : 'Not dated';
+      return { state: 'nodate', label: short, days: 0, note: d.t };
+    }
+    var diff = daysBetween(d.d, AS_AT);
+    if (diff > 0) return { state: 'overdue', label: plural(diff, 'day') + ' over', days: diff };
+    if (diff === 0) return { state: 'due', label: 'Due today', days: 0 };
+    if (diff > -15) return { state: 'soon', label: 'In ' + plural(-diff, 'day'), days: diff };
+    return { state: 'ok', label: 'On time', days: diff };
+  }
+
+  function betsOf(item, kind) {
+    if (kind === 'dependencies') return item.outBet ? [item.outBet] : [];
+    return item.bet ? [item.bet] : [];
+  }
+  function initsOf(item, kind) {
+    if (kind === 'dependencies') return item.outInit ? [item.outInit] : [];
+    return item.initiative ? [item.initiative] : [];
+  }
+  function knownBet(b) { return DATA.bets.indexOf(b) !== -1; }
+  function isOther(bets) {
+    if (!bets.length) return true;
+    return bets.some(function (b) { return !knownBet(b); });
+  }
+
+  /* ── filters ────────────────────────────────────────────────────────────── */
+  function matchBet(item, kind) {
+    if (state.bet === 'ALL') return true;
+    var bets = betsOf(item, kind);
+    if (state.bet === 'OTHER') return isOther(bets);
+    return bets.indexOf(state.bet) !== -1;
+  }
+  function matchStatus(item) {
+    if (state.status === 'All') return true;
+    if (state.status === 'Open') return item.status !== 'Closed';
+    return item.status === 'Closed';
+  }
+  function matchLevel(item, kind) {
+    if (kind !== 'risks' && kind !== 'issues') return true;
+    return !!state.levels[lvl(item)];
+  }
+  function matchInitiative(item, kind) {
+    if (state.initiative === 'ALL') return true;
+    return initsOf(item, kind).indexOf(state.initiative) !== -1;
+  }
+  function matchOverdue(item, kind) {
+    if (!state.overdueOnly) return true;
+    return overdueInfo(item, dueField(kind)).state === 'overdue';
+  }
+  var SEARCH_FIELDS = ['ref', 'title', 'desc', 'plan', 'progress', 'initiative',
+    'outInit', 'inInit', 'outBet', 'inBet', 'bet'];
+  function matchQuery(item) {
+    if (!state.q) return true;
+    var q = state.q.toLowerCase();
+    for (var i = 0; i < SEARCH_FIELDS.length; i++) {
+      var v = item[SEARCH_FIELDS[i]];
+      if (v && String(v).toLowerCase().indexOf(q) !== -1) return true;
+    }
+    return false;
+  }
+
+  function filtered(kind, opts) {
+    opts = opts || {};
+    return DATA[kind].filter(function (x) {
+      if (!matchBet(x, kind)) return false;
+      if (!opts.ignoreStatus && !matchStatus(x)) return false;
+      if (!opts.ignoreLevel && !matchLevel(x, kind)) return false;
+      if (!matchInitiative(x, kind)) return false;
+      if (!opts.ignoreOverdue && !matchOverdue(x, kind)) return false;
+      if (!matchQuery(x)) return false;
+      return true;
+    });
+  }
+
+  function openCountForBet(bet) {
+    var n = 0;
+    KINDS.forEach(function (kind) {
+      DATA[kind].forEach(function (x) {
+        if (x.status === 'Closed') return;
+        var bets = betsOf(x, kind);
+        if (bet === 'ALL') { n++; return; }
+        if (bet === 'OTHER') { if (isOther(bets)) n++; return; }
+        if (bets.indexOf(bet) !== -1) n++;
+      });
+    });
+    return n;
+  }
+  function viewCount(key) {
+    if (key === 'overview' || key === 'quality' || key === 'contract') return null;
+    if (key === 'all') return KINDS.reduce(function (a, k) { return a + filtered(k).length; }, 0);
+    return filtered(key).length;
+  }
+
+  /* Plain-English summary of anything narrowing the view beyond the default. */
+  function activeFilters() {
+    var out = [];
+    if (state.status !== 'Open') out.push(state.status === 'All' ? 'open and closed' : 'closed only');
+    if (state.overdueOnly) out.push('overdue only');
+    var off = LEVELS.filter(function (l) { return !state.levels[l]; });
+    if (off.length) {
+      var on = LEVELS.filter(function (l) { return state.levels[l]; });
+      out.push(on.length ? 'level ' + on.join(', ').toLowerCase() : 'no levels selected');
+    }
+    if (state.initiative !== 'ALL') out.push('initiative ' + state.initiative);
+    if (state.q) out.push('search "' + state.q + '"');
+    return out;
+  }
+
+  /* ── sorting ────────────────────────────────────────────────────────────── */
+  function pad6(n) { var s = String(n); while (s.length < 6) s = '0' + s; return s; }
+
+  /* References sort by their trailing number rather than as text, so 366 comes
+     before 533, and 99 before 100 even where the zero padding in the log is
+     inconsistent. The leading text is kept ahead of the number so the
+     different reference prefixes still group together. */
+  function refKey(ref) {
+    var t = String(ref || '');
+    var m = /^(.*?)(\d+)\s*$/.exec(t);
+    if (!m) return t.toUpperCase() + '|';
+    return m[1].toUpperCase() + '|' + pad6(parseInt(m[2], 10));
+  }
+
+  function sortKeyValue(item, key, kind) {
+    switch (key) {
+      case 'ref': return refKey(item.ref);
+      case 'bet': return kind === 'dependencies' ? (item.outBet || '') : (item.bet || '');
+      case 'initiative': return kind === 'dependencies' ? (item.outInit || '') : (item.initiative || '');
+      case 'inbound': return (item.inBet || '') + ' ' + (item.inInit || '');
+      case 'raised': return (item.raised && item.raised.d) || '0000';
+      case 'title': return (item.title || '').toLowerCase();
+      case 'level': return String(4 - LEVELS.indexOf(lvl(item)));
+      case 'status': return item.status || '';
+      case 'depStatus': return item.depStatus || '';
+      case 'due': return (item.due && item.due.d) || '9999';
+      case 'deadline': return (item.deadline && item.deadline.d) || '9999';
+      case 'overdue': {
+        var oi = overdueInfo(item, dueField(kind));
+        var rank = { overdue: 0, due: 1, soon: 2, ok: 3, nodate: 4, closed: 5 }[oi.state];
+        return String(rank) + pad6(10000 - oi.days);
+      }
+      default: return '';
+    }
+  }
+  function applySort(rows, kind) {
+    var s = sortState[kind];
+    if (!s) return rows;
+    return rows.slice().sort(function (a, b) {
+      var va = sortKeyValue(a, s.key, kind), vb = sortKeyValue(b, s.key, kind);
+      if (va === vb) return refKey(a.ref) < refKey(b.ref) ? -1 : 1;
+      return (va < vb ? -1 : 1) * (s.dir === 'desc' ? -1 : 1);
+    });
+  }
+
+  function sortableTh(kind, key, label, extraClass) {
+    var s = sortState[kind];
+    var arrow = (s && s.key === key) ? (s.dir === 'asc' ? '▲' : '▼') : '';
+    return el('th', {
+      class: 'sortable ' + (extraClass || ''),
+      on: { click: function () {
+        var cur = sortState[kind];
+        sortState[kind] = (cur && cur.key === key && cur.dir === 'asc')
+          ? { key: key, dir: 'desc' } : { key: key, dir: 'asc' };
+        renderContent();
+      } }
+    }, [label, ' ', el('span', { class: 'arrow', text: arrow })]);
+  }
+  function colgroup(widths) {
+    return el('colgroup', null, widths.map(function (w) {
+      return el('col', { style: 'width:' + w + '%' });
+    }));
+  }
+
+  /* ── cells ──────────────────────────────────────────────────────────────── */
+  function refCell(item) {
+    return el('td', { class: 'ref' }, [el('span', { class: 'caret', text: '▶' }), ' ', item.ref]);
+  }
+  function dashed(value, cls) {
+    return value ? el('span', { text: value }) : el('span', { class: 'muted', text: '—' });
+  }
+  /* Some deadlines are prose rather than dates — "Ongoing throughout the life
+     of the programme". Those wrap over as many lines as they need instead of
+     running under the next column; real dates stay on one line. */
+  function dateCell(field) {
+    var f = field || {};
+    var isText = !!f.t && !f.d;
+    return el('td', { class: isText ? 'dt dt-text' : 'dt' }, dashed(f.t));
+  }
+  function metaCell(value) {
+    return el('td', { class: 'meta' }, dashed(value));
+  }
+  function statusCell(item) {
+    var closed = item.status === 'Closed';
+    return el('td', null, el('span', { class: 'status ' + (closed ? 's-cl' : 's-on') }, [
+      el('i', { class: 'dot ' + (closed ? 'd-n' : 'd-g') }),
+      item.status || 'Open'
+    ]));
+  }
+  function overdueCell(item, field) {
+    var oi = overdueInfo(item, field);
+    if (oi.state === 'overdue') {
+      return el('td', { class: 'dt od-cell' }, el('span', { class: 'od', text: oi.label }));
+    }
+    if (oi.state === 'due') return el('td', { class: 'dt' }, el('span', { class: 'od', text: 'Due today' }));
+    if (oi.state === 'closed') return el('td', { class: 'dt' }, el('span', { class: 'muted', text: 'Closed' }));
+    if (oi.state === 'nodate') {
+      var span = el('span', { class: 'muted', text: oi.label });
+      if (oi.note && oi.note !== oi.label) span.title = oi.note;
+      return el('td', { class: 'dt' }, span);
+    }
+    return el('td', { class: 'dt', text: oi.label });
+  }
+  function titleCell(value) {
+    return value
+      ? el('td', { class: 'title', text: value })
+      : el('td', { class: 'title' }, el('span', { class: 'muted', text: 'No title recorded' }));
+  }
+  function detailField(heading, value) {
+    var has = value && String(value).trim();
+    return el('div', { class: 'dfield' }, [
+      el('h4', { text: heading }),
+      el('p', { class: has ? null : 'none', text: has ? value : 'Not recorded' })
+    ]);
+  }
+  /* Notes declared against a column in the file structure, shown on hover so a
+     value like the log's own overdue flag explains itself in place. */
+  function columnNote(kind, field) {
+    var cols = (structure.sheets[kind] || {}).columns || [];
+    for (var i = 0; i < cols.length; i++) {
+      if (cols[i].field === field && cols[i].note) return cols[i].note;
+    }
+    return '';
+  }
+
+  function detailMeta(pairs) {
+    var kept = pairs.filter(function (p) { return p[1]; });
+    if (!kept.length) return null;
+    return el('div', { class: 'dmeta' }, kept.map(function (p) {
+      var span = el('span', null, [p[0], ' ', el('b', { text: String(p[1]) })]);
+      /* A third element is an explanation of what the value means. */
+      if (p[2]) {
+        span.title = p[2];
+        span.classList.add('has-note');
+      }
+      return span;
+    }));
+  }
+  function detailRow(kind, item, span, children) {
+    if (!expanded[kind + '|' + item.ref]) return null;
+    return el('tr', { class: 'detail' },
+      el('td', { colspan: span }, el('div', { class: 'dwrap' }, children)));
+  }
+  function toggleRow(kind, item) {
+    var key = kind + '|' + item.ref;
+    if (expanded[key]) delete expanded[key]; else expanded[key] = true;
+    renderContent();
+  }
+
+  /* Column headings come from the baked-in structure, so the table headers, the
+     detail labels and the CSV export can never drift apart. */
+  function heading(kind, field, fallback) {
+    var col = structure.sheets[kind] && structure.sheets[kind].byField[field];
+    return col ? col.heading : (fallback || field);
+  }
+
+  /* ── item tables ────────────────────────────────────────────────────────── */
+  function riskLikeTable(kind, rows) {
+    var span = 9;
+    var scoreField = kind === 'risks' ? 'impact' : 'consequence';
+    var body = el('tbody');
+
+    rows.forEach(function (x) {
+      var L = lvl(x), key = kind + '|' + x.ref;
+      body.appendChild(el('tr', {
+        class: 'item lvl' + (x.status === 'Closed' ? ' closed-row' : '') + (expanded[key] ? ' open' : ''),
+        'data-lvl': L,
+        on: { click: function () { toggleRow(kind, x); } }
+      }, [
+        refCell(x), metaCell(x.bet), metaCell(initText(x.bet, x.initiative)), dateCell(x.raised),
+        titleCell(x.title),
+        el('td', null, el('span', { class: 'badge ' + LEVEL_BADGE[L], text: L })),
+        statusCell(x), dateCell(x.due), overdueCell(x, 'due')
+      ]));
+
+      var detail = detailRow(kind, x, span, [
+        detailField(heading(kind, 'desc'), x.desc),
+        detailField(heading(kind, 'plan'), x.plan),
+        detailField(heading(kind, 'progress'), x.progress),
+        detailMeta([
+          [heading(kind, 'owner'), x.owner],
+          [heading(kind, scoreField), x[scoreField]],
+          [heading(kind, 'likelihood'), x.likelihood],
+          [heading(kind, 'score'), x.score],
+          [heading(kind, 'lastUpdated'), x.lastUpdated && x.lastUpdated.t],
+          [heading(kind, 'closed'), x.closed && x.closed.t],
+          [heading(kind, 'linkRef'), x.linkRef],
+          [heading(kind, 'overdueFlag'), x.overdueFlag, columnNote(kind, 'overdueFlag')],
+          ['Workbook row', x.sourceRow]
+        ])
+      ]);
+      if (detail) body.appendChild(detail);
+    });
+
+    return el('div', { class: 'tbl-wrap' }, el('table', { class: 'ds-tbl fixed' }, [
+      colgroup([11, 11, 13, 7, 25, 7, 8, 8, 10]),
+      el('thead', null, el('tr', null, [
+        sortableTh(kind, 'ref', 'Reference'),
+        sortableTh(kind, 'bet', 'Big bet'),
+        sortableTh(kind, 'initiative', 'Initiative'),
+        sortableTh(kind, 'raised', 'Raised'),
+        sortableTh(kind, 'title', heading(kind, 'title')),
+        sortableTh(kind, 'level', heading(kind, 'level')),
+        sortableTh(kind, 'status', 'Status'),
+        sortableTh(kind, 'due', 'Due date'),
+        sortableTh(kind, 'overdue', 'Overdue')
+      ])),
+      body
+    ]));
+  }
+
+  function assumptionsTable(rows) {
+    var kind = 'assumptions', span = 8;
+    var body = el('tbody');
+
+    rows.forEach(function (x) {
+      var key = kind + '|' + x.ref;
+      body.appendChild(el('tr', {
+        class: 'item' + (x.status === 'Closed' ? ' closed-row' : '') + (expanded[key] ? ' open' : ''),
+        on: { click: function () { toggleRow(kind, x); } }
+      }, [
+        refCell(x), metaCell(x.bet), metaCell(initText(x.bet, x.initiative)), dateCell(x.raised),
+        titleCell(x.title), statusCell(x), dateCell(x.due), overdueCell(x, 'due')
+      ]));
+
+      var detail = detailRow(kind, x, span, [
+        detailField(heading(kind, 'desc'), x.desc),
+        detailField(heading(kind, 'plan'), x.plan),
+        detailField(heading(kind, 'progress'), x.progress),
+        detailMeta([
+          [heading(kind, 'owner'), x.owner],
+          [heading(kind, 'lastUpdated'), x.lastUpdated && x.lastUpdated.t],
+          ['Workbook row', x.sourceRow]
+        ])
+      ]);
+      if (detail) body.appendChild(detail);
+    });
+
+    return el('div', { class: 'tbl-wrap' }, el('table', { class: 'ds-tbl fixed' }, [
+      colgroup([11, 12, 15, 7, 27, 8, 8, 12]),
+      el('thead', null, el('tr', null, [
+        sortableTh(kind, 'ref', 'Reference'),
+        sortableTh(kind, 'bet', 'Big bet'),
+        sortableTh(kind, 'initiative', 'Initiative'),
+        sortableTh(kind, 'raised', 'Raised'),
+        sortableTh(kind, 'title', heading(kind, 'title')),
+        sortableTh(kind, 'status', 'Status'),
+        sortableTh(kind, 'due', 'Due date'),
+        sortableTh(kind, 'overdue', 'Validation due')
+      ])),
+      body
+    ]));
+  }
+
+  function dependenciesTable(rows) {
+    var kind = 'dependencies', span = 8;
+    var body = el('tbody');
+
+    function pairCell(bet, initiative) {
+      var i = initText(bet, initiative);
+      if (!bet && !i) return el('td', { class: 'meta' }, el('span', { class: 'muted', text: '—' }));
+      return el('td', { class: 'meta' }, [
+        bet || '—',
+        i ? el('br') : null,
+        i ? el('span', { class: 'muted', text: i }) : null
+      ]);
+    }
+
+    rows.forEach(function (x) {
+      var key = kind + '|' + x.ref;
+      var closed = x.depStatus === 'Closed' || x.status === 'Closed';
+      var over = x.depStatus === 'Overdue';
+      var atRisk = x.depStatus === 'At Risk';
+      var statusClass = closed ? 's-cl' : over ? 's-off' : atRisk ? 's-at' : 's-on';
+      var dotClass = closed ? 'd-n' : over ? 'd-r' : atRisk ? 'd-a' : 'd-g';
+
+      body.appendChild(el('tr', {
+        class: 'item' + (x.status === 'Closed' ? ' closed-row' : '') + (expanded[key] ? ' open' : ''),
+        on: { click: function () { toggleRow(kind, x); } }
+      }, [
+        refCell(x), dateCell(x.raised),
+        pairCell(x.outBet, x.outInit), pairCell(x.inBet, x.inInit),
+        titleCell(x.title), dateCell(x.deadline),
+        el('td', null, el('span', { class: 'status ' + statusClass }, [
+          el('i', { class: 'dot ' + dotClass }),
+          x.depStatus || x.status || 'Open'
+        ])),
+        overdueCell(x, 'deadline')
+      ]));
+
+      var detail = detailRow(kind, x, span, [
+        detailField(heading(kind, 'desc'), x.desc),
+        detailField(heading(kind, 'progress'), x.progress),
+        detailMeta([
+          [heading(kind, 'owner'), x.owner],
+          [heading(kind, 'lastReviewed'), x.lastReviewed && x.lastReviewed.t],
+          [heading(kind, 'status'), x.status],
+          [heading(kind, 'closureDate'), x.closureDate && x.closureDate.t],
+          ['Workbook row', x.sourceRow]
+        ])
+      ]);
+      if (detail) body.appendChild(detail);
+    });
+
+    return el('div', { class: 'tbl-wrap' }, el('table', { class: 'ds-tbl fixed' }, [
+      colgroup([11, 7, 14, 14, 22, 10, 10, 12]),
+      el('thead', null, el('tr', null, [
+        sortableTh(kind, 'ref', 'Reference'),
+        sortableTh(kind, 'raised', 'Raised'),
+        sortableTh(kind, 'bet', 'Outbound bet & initiative'),
+        sortableTh(kind, 'inbound', 'Inbound bet & initiative'),
+        sortableTh(kind, 'title', heading(kind, 'title')),
+        sortableTh(kind, 'deadline', heading(kind, 'deadline')),
+        sortableTh(kind, 'depStatus', 'Status'),
+        sortableTh(kind, 'overdue', 'Overdue')
+      ])),
+      body
+    ]));
+  }
+
+  /* Dependencies owed TO the selected bet by someone else. Shown as a separate,
+     clearly-labelled panel because the selected bet does not own these: they sit
+     with their outbound owner in every count on the page. Without this panel it
+     looks as though dependencies are missing when a bet is toggled. */
+  function inboundDependencies() {
+    if (state.bet === 'ALL' || state.bet === 'OTHER') return [];
+    return DATA.dependencies.filter(function (x) {
+      if (x.inBet !== state.bet) return false;
+      if (x.outBet === state.bet) return false;      /* already shown as owned  */
+      if (!matchStatus(x)) return false;
+      if (!matchQuery(x)) return false;
+      if (state.overdueOnly && overdueInfo(x, 'deadline').state !== 'overdue') return false;
+      return true;
+    });
+  }
+
+  function inboundCard() {
+    var rows = applySort(inboundDependencies(), 'dependencies');
+    if (!rows.length) return null;
+    return el('section', { class: 'card' }, [
+      el('div', { class: 'card-bar' }, el('div', null, [
+        el('div', { class: 'card-title', text: 'Owed to ' + state.bet + ' by other bets' }),
+        el('div', { class: 'card-sub',
+          text: plural(rows.length, 'item') + ' · not counted anywhere else on this page, ' +
+            'because each one belongs to the bet that has to deliver it' })
+      ])),
+      dependenciesTable(rows)
+    ]);
+  }
+
+  /* ── card wrapper ───────────────────────────────────────────────────────── */
+  function itemCard(title, kind, rows, table, note) {
+    var af = activeFilters();
+    if (kind === 'assumptions' || kind === 'dependencies') {
+      af = af.filter(function (s) { return s.indexOf('level ') !== 0 && s !== 'no levels selected'; });
+    }
+    var sub = plural(rows.length, 'item') +
+      (af.length ? ' · filtered to ' + af.join(', ') : '') +
+      (note ? ' · ' + note : '');
+
+    return el('section', { class: 'card' }, [
+      el('div', { class: 'card-bar' }, [
+        el('div', null, [
+          el('div', { class: 'card-title', text: title }),
+          el('div', { class: 'card-sub', text: sub })
+        ]),
+        el('div', { class: 'card-acts' }, [
+          el('button', { class: 'btn btn-ghost btn-sm', type: 'button', text: 'Expand all',
+            on: { click: function () {
+              filtered(kind).forEach(function (x) { expanded[kind + '|' + x.ref] = true; });
+              renderContent();
+            } } }),
+          el('button', { class: 'btn btn-ghost btn-sm', type: 'button', text: 'Collapse all',
+            on: { click: function () {
+              Object.keys(expanded).forEach(function (k) {
+                if (k.indexOf(kind + '|') === 0) delete expanded[k];
+              });
+              renderContent();
+            } } }),
+          el('button', { class: 'btn btn-ghost btn-sm', type: 'button', text: 'Download CSV',
+            on: { click: function () { downloadCsv(kind); } } })
+        ])
+      ]),
+      rows.length ? table : el('div', { class: 'empty' }, [
+        el('div', { class: 'empty-title', text: 'Nothing to show' }),
+        el('div', { class: 'empty-sub',
+          text: 'No ' + kind + ' match the current filters. Widen the status or big bet selection.' })
+      ])
+    ]);
+  }
+
+  /* ── overview ───────────────────────────────────────────────────────────── */
+  function overviewView() {
+    var betList = state.bet === 'ALL' ? DATA.bets.slice() : [state.bet];
+    if (state.bet === 'ALL') {
+      var hasOther = KINDS.some(function (k) {
+        return DATA[k].some(function (x) { return isOther(betsOf(x, k)); });
+      });
+      if (hasOther) betList.push('OTHER');
+    }
+
+    /* Same predicates as every table, restricted to one bet. */
+    function countFor(bet, kind, test) {
+      return DATA[kind].filter(function (x) {
+        if (!matchQuery(x) || !matchStatus(x)) return false;
+        if (!matchLevel(x, kind) || !matchOverdue(x, kind) || !matchInitiative(x, kind)) return false;
+        var bets = betsOf(x, kind);
+        if (!(bet === 'OTHER' ? isOther(bets) : bets.indexOf(bet) !== -1)) return false;
+        return test ? test(x, kind) : true;
+      }).length;
+    }
+
+    var summaryBody = el('tbody', null, betList.map(function (bet) {
+      var label = bet === 'OTHER' ? 'Other / programme-level' : bet;
+      var r = countFor(bet, 'risks'), i = countFor(bet, 'issues'),
+          a = countFor(bet, 'assumptions'), d = countFor(bet, 'dependencies');
+      var overdue = KINDS.reduce(function (acc, k) {
+        return acc + countFor(bet, k, function (x, kk) {
+          return overdueInfo(x, dueField(kk)).state === 'overdue';
+        });
+      }, 0);
+      var severe = ['risks', 'issues'].reduce(function (acc, k) {
+        return acc + countFor(bet, k, function (x) { return lvl(x) === 'High' || lvl(x) === 'Critical'; });
+      }, 0);
+      var mix = LEVELS.map(function (L) {
+        return ['risks', 'issues'].reduce(function (acc, k) {
+          return acc + countFor(bet, k, function (x) { return lvl(x) === L; });
+        }, 0);
+      });
+      var total = mix.reduce(function (x, y) { return x + y; }, 0);
+
+      /* Widths are computed numbers and colours come from the fixed palette;
+         no workbook text ever reaches a style attribute. */
+      var bar = total
+        ? el('div', { class: 'bar' }, LEVELS.map(function (L, ix) {
+            if (!mix[ix]) return null;
+            return el('i', {
+              style: 'width:' + (mix[ix] / total * 100) + '%;background:' + LEVEL_COLOUR[L],
+              title: L + ': ' + mix[ix]
+            });
+          }))
+        : el('span', { class: 'muted', text: '—' });
+
+      function strongCount(n) {
+        return n
+          ? el('td', { class: 'num' }, el('b', { style: 'color:var(--red)', text: String(n) }))
+          : el('td', { class: 'num' }, el('span', { class: 'muted', text: '0' }));
+      }
+
+      return el('tr', null, [
+        el('td', { style: 'font-weight:700', text: label }),
+        el('td', { class: 'num', text: String(r) }),
+        el('td', { class: 'num', text: String(i) }),
+        el('td', { class: 'num', text: String(a) }),
+        el('td', { class: 'num', text: String(d) }),
+        strongCount(severe),
+        strongCount(overdue),
+        el('td', null, bar)
+      ]);
+    }));
+
+    var word = state.status === 'Closed' ? 'Closed' : state.status === 'All' ? 'All' : 'Open';
+    if (state.overdueOnly) word += ' overdue';
+    var af = activeFilters();
+
+    var summary = el('section', { class: 'card' }, [
+      el('div', { class: 'card-bar' }, el('div', null, [
+        el('div', { class: 'card-title', text: word + ' RAID by big bet' }),
+        el('div', { class: 'card-sub',
+          text: 'Same filters as every other view' + (af.length ? ' · filtered to ' + af.join(', ') : '') })
+      ])),
+      el('div', { class: 'tbl-wrap' }, el('table', { class: 'ds-tbl' }, [
+        colgroup([24, 8, 8, 11, 12, 11, 8, 18]),
+        el('thead', null, el('tr', null, [
+          el('th', { text: 'Big bet' }),
+          el('th', { class: 'num', text: 'Risks' }),
+          el('th', { class: 'num', text: 'Issues' }),
+          el('th', { class: 'num', text: 'Assumptions' }),
+          el('th', { class: 'num', text: 'Dependencies' }),
+          el('th', { class: 'num', text: 'High & critical' }),
+          el('th', { class: 'num', text: 'Overdue' }),
+          el('th', { text: 'Risk & issue level mix' })
+        ])),
+        summaryBody
+      ])),
+      el('div', { class: 'legend' }, LEVELS.map(function (L) {
+        return el('span', null, [el('i', { style: 'background:' + LEVEL_COLOUR[L] }), L]);
+      }))
+    ]);
+
+    /* Impact × likelihood. Unscored risks are excluded rather than plotted at
+       zero, which would understate exposure. */
+    var scored = filtered('risks', { ignoreOverdue: true });
+    var grid = {};
+    scored.forEach(function (x) {
+      var im = parseInt(x.impact, 10), lk = parseInt(x.likelihood, 10);
+      if (!im || !lk || im < 1 || im > 3 || lk < 1 || lk > 4) return;
+      grid[im + ',' + lk] = (grid[im + ',' + lk] || 0) + 1;
+    });
+    var plotted = Object.keys(grid).reduce(function (a, k) { return a + grid[k]; }, 0);
+
+    var matrixBody = el('tbody');
+    for (var im = 3; im >= 1; im--) {
+      var row = el('tr', null, el('th', { class: 'rh', text: 'Impact ' + im }));
+      for (var lk = 1; lk <= 4; lk++) {
+        var n = grid[im + ',' + lk] || 0, score = im * lk;
+        var bg = score >= 12 ? 'var(--red-strong)' : score >= 8 ? 'var(--red)'
+          : score >= 4 ? 'var(--rag-amber)' : 'var(--rag-g)';
+        row.appendChild(el('td', {
+          class: 'cell',
+          style: 'background:' + bg + ';opacity:' + (n ? 1 : 0.2),
+          text: n ? String(n) : ''
+        }));
+      }
+      matrixBody.appendChild(row);
+    }
+
+    var matrix = el('section', { class: 'card' }, [
+      el('div', { class: 'card-bar' }, el('div', null, [
+        el('div', { class: 'card-title', text: 'Risk exposure' }),
+        el('div', { class: 'card-sub', text: plotted + ' of ' + scored.length + ' risks scored' })
+      ])),
+      el('div', { class: 'card-pad' }, el('table', { class: 'matrix' }, [
+        el('thead', null, el('tr', null, [
+          el('th', { class: 'rh' }),
+          el('th', { text: 'Unlikely' }), el('th', { text: 'Possible' }),
+          el('th', { text: 'Likely' }), el('th', { text: 'Extremely likely' })
+        ])),
+        matrixBody
+      ])),
+      el('div', { class: 'note',
+        text: 'Risks plotted by scored impact and likelihood. Unscored risks are not shown.' })
+    ]);
+
+    /* Longest overdue, across all four categories. */
+    var attention = [];
+    KINDS.forEach(function (k) {
+      filtered(k, { ignoreOverdue: true }).forEach(function (x) {
+        var oi = overdueInfo(x, dueField(k));
+        if (oi.state === 'overdue') attention.push({ kind: k, item: x, days: oi.days });
+      });
+    });
+    attention.sort(function (a, b) { return b.days - a.days; });
+    var top = attention.slice(0, 12);
+
+    var attentionBody = top.length
+      ? el('div', { class: 'tbl-wrap' }, el('table', { class: 'ds-tbl narrow' }, [
+          colgroup([17, 13, 20, 38, 12]),
+          el('thead', null, el('tr', null, [
+            el('th', { text: 'Reference' }), el('th', { text: 'Type' }),
+            el('th', { text: 'Big bet' }), el('th', { text: 'Title' }),
+            el('th', { class: 'num', text: 'Days over' })
+          ])),
+          el('tbody', null, top.map(function (t) {
+            return el('tr', null, [
+              el('td', { class: 'ref', text: t.item.ref }),
+              el('td', { class: 'meta', text: CATEGORY_NAME[t.kind] }),
+              el('td', { class: 'meta', text: betsOf(t.item, t.kind)[0] || '—' }),
+              el('td', { class: 'title', text: t.item.title || '—' }),
+              el('td', { class: 'num od-cell' }, el('span', { class: 'od', text: String(t.days) }))
+            ]);
+          }))
+        ]))
+      : el('div', { class: 'empty' }, [
+          el('div', { class: 'empty-title', text: 'Nothing overdue' }),
+          el('div', { class: 'empty-sub', text: 'Every item in scope is inside its due date.' })
+        ]);
+
+    var attentionCard = el('section', { class: 'card' }, [
+      el('div', { class: 'card-bar' }, el('div', null, [
+        el('div', { class: 'card-title', text: 'Longest overdue' }),
+        el('div', { class: 'card-sub',
+          text: attention.length + ' overdue in scope' +
+            (attention.length > 12 ? ', showing the 12 oldest' : '') })
+      ])),
+      attentionBody
+    ]);
+
+    return frag([summary, el('div', { class: 'ov-grid' }, [matrix, attentionCard])]);
+  }
+
+  /* ── data quality (this load) ───────────────────────────────────────────── */
+  /* Which date the dashboard is reporting as at, where it came from, and a way
+     to correct it when a tool writes a misleading timestamp. */
+  function reportingDateCard() {
+    var m = DATA.meta;
+    var src = m.dateSource;
+    var candidates = m.candidates || [];
+
+    var explain;
+    if (src === 'system') {
+      explain = 'This workbook carries no usable timestamp and the file has no date on this ' +
+        'device, so today\u2019s date is being used. If the download is older than that, ' +
+        'set the right date below \u2014 every overdue calculation measures from it.';
+    } else if (src === 'manual') {
+      explain = 'Set by hand. Every overdue calculation measures from ' + longDate(AS_AT) +
+        ', not from today\u2019s date on this device (' + longDate(SYSTEM_TODAY) + ').';
+    } else {
+      explain = 'Taken from ' + (m.dateNote || 'the report') + ', the most recent date this ' +
+        'file carries. Every overdue calculation measures from here. Today on this device is ' +
+        longDate(SYSTEM_TODAY) + '.';
+    }
+
+    var kids = [el('div', { text: explain })];
+
+    if (candidates.length > 1) {
+      kids.push(el('div', { class: 'asat-opts' }, candidates.map(function (c) {
+        var on = c.iso === AS_AT && c.source === src;
+        var b = el('button', {
+          class: 'asat-opt' + (on ? ' on' : ''), type: 'button',
+          'aria-pressed': on ? 'true' : 'false',
+          on: { click: function () {
+            setAsAt(c.iso, c.source, c.note);
+            renderStamp();
+            renderAll();
+          } }
+        }, [
+          el('span', { class: 'asat-d', text: longDate(c.iso) }),
+          el('span', { class: 'asat-l', text: c.label })
+        ]);
+        return b;
+      })));
+    }
+
+    var input = el('input', {
+      type: 'date', class: 'asat-in', value: AS_AT,
+      max: SYSTEM_TODAY, min: '2015-01-01', 'aria-label': 'Reporting date'
+    });
+    input.addEventListener('change', function () {
+      if (!plausibleDate(input.value)) { input.value = AS_AT; return; }
+      var match = null;
+      candidates.forEach(function (c) { if (!match && c.iso === input.value) match = c; });
+      setAsAt(input.value,
+        match ? match.source : 'manual',
+        match ? match.note : 'a date set by hand in the Data quality view');
+      renderStamp();
+      renderAll();
+    });
+    kids.push(el('div', { class: 'asat-row' }, [
+      el('span', { class: 'lbl', text: 'Or set it' }), input
+    ]));
+
+    return el('section', { class: 'card' }, [
+      el('div', { class: 'card-bar' }, el('div', null, [
+        el('div', { class: 'card-title', text: 'Data as at \u00b7 ' + longDate(AS_AT) }),
+        el('div', { class: 'card-sub',
+          text: src === 'system' ? 'No date found in the workbook or the file'
+            : 'Taken from ' + (m.dateNote || 'the report') })
+      ])),
+      el('div', { class: 'card-pad' }, kids)
+    ]);
+  }
+
+  function qualityView() {
+    var rep = DATA.report;
+
+    function repCell(value, label) {
+      return el('div', { class: 'rep-cell' }, [
+        el('b', { text: String(value) }), el('span', { text: label })
+      ]);
+    }
+
+    var totals = KINDS.reduce(function (a, k) { return a + DATA[k].length; }, 0);
+
+    var loadCard = el('section', { class: 'card' }, [
+      el('div', { class: 'card-bar' }, el('div', null, [
+        el('div', { class: 'card-title', text: 'What was read' }),
+        el('div', { class: 'card-sub',
+          text: 'From ' + rep.source + ' \u00b7 ' + fileSize(rep.sizeBytes) +
+            ' \u00b7 data as at ' + longDate(AS_AT) })
+      ])),
+      el('div', { class: 'card-pad' }, el('div', { class: 'rep' }, [
+        repCell(totals, 'RAID items'),
+        repCell(DATA.risks.length, 'Risks'),
+        repCell(DATA.issues.length, 'Issues'),
+        repCell(DATA.assumptions.length, 'Assumptions'),
+        repCell(DATA.dependencies.length, 'Dependencies')
+      ])),
+      el('div', { class: 'tbl-wrap' }, el('table', { class: 'ds-tbl narrow' }, [
+        el('thead', null, el('tr', null, [
+          el('th', { text: 'Tab' }),
+          el('th', { class: 'num', text: 'First data row' }),
+          el('th', { class: 'num', text: 'Rows scanned' }),
+          el('th', { class: 'num', text: 'Items kept' }),
+          el('th', { class: 'num', text: 'No reference' }),
+          el('th', { class: 'num', text: 'Blank or template rows' })
+        ])),
+        el('tbody', null, KINDS.map(function (k) {
+          var s = rep.categories[k], def = structure.sheets[k];
+          return el('tr', null, [
+            el('td', { text: def.sheet }),
+            el('td', { class: 'num', text: String(def.firstDataRow) }),
+            el('td', { class: 'num', text: String(s.scanned) }),
+            el('td', { class: 'num', text: String(s.kept) }),
+            el('td', { class: 'num', text: String(s.skippedNoRef) }),
+            el('td', { class: 'num', text: String(s.skippedEmpty) })
+          ]);
+        }))
+      ])),
+      el('div', { class: 'card-pad', style: 'padding-top:14px' },
+        KINDS.filter(function (k) { return rep.categories[k].skippedEmpty > 0; })
+          .map(function (k) {
+            var st = rep.categories[k], def = structure.sheets[k];
+            return el('div', { style: 'margin-bottom:20px' }, [
+              el('div', { class: 'm-label',
+                text: def.sheet + ' — ' + st.skippedEmpty + ' rows excluded (' +
+                  st.skippedRefOnly + ' reference only, ' + st.skippedNoSubstance +
+                  ' with no title or description)' }),
+              el('p', { class: 'card-sub', style: 'margin-bottom:8px', text: def.keepNote }),
+
+              st.refOnlySamples.length ? el('div', { style: 'margin-bottom:10px' }, [
+                el('p', { class: 'card-sub', style: 'margin-bottom:5px',
+                  text: 'Reference only — nothing at all in the row but the reference:' }),
+                el('div', { class: 'chips' }, st.refOnlySamples.map(function (s) {
+                  return el('span', { class: 'chip', text: s.ref + ' (row ' + s.row + ')' });
+                })),
+                st.skippedRefOnly > st.refOnlySamples.length
+                  ? el('p', { class: 'card-sub',
+                      text: 'and ' + (st.skippedRefOnly - st.refOnlySamples.length) + ' more' })
+                  : null
+              ]) : null,
+
+              st.partialSamples.length ? el('table', { class: 'ds-tbl narrow' }, [
+                colgroup([22, 10, 68]),
+                el('thead', null, el('tr', null, [
+                  el('th', { text: 'Excluded reference' }),
+                  el('th', { class: 'num', text: 'Row' }),
+                  el('th', { text: 'What that row did contain' })
+                ])),
+                el('tbody', null, st.partialSamples.map(function (s) {
+                  return el('tr', null, [
+                    el('td', { class: 'ref', text: s.ref }),
+                    el('td', { class: 'num', text: String(s.row) }),
+                    el('td', { class: 'meta', text: s.filled.join(', ') })
+                  ]);
+                }))
+              ]) : null,
+
+              st.partialSamples.length && st.skippedNoSubstance > st.partialSamples.length
+                ? el('p', { class: 'card-sub',
+                    text: 'First ' + st.partialSamples.length + ' of ' + st.skippedNoSubstance +
+                      ' shown. If any of these look like real items, the rule above is too strict — ' +
+                      'the column list is in the Data contract view.' })
+                : null
+            ]);
+          })),
+      el('div', { class: 'note',
+        text: 'A row becomes an item only if its reference starts with "' +
+          structure.sheets.risks.refPrefix + '" and, once the log\'s own example text, template ' +
+          'sentences and placeholders have been stripped, it still has a title or a description. ' +
+          'Rows counted under "no reference" are headings, spacers and notes. Rows counted as ' +
+          '"blank or template" are pre-numbered references that have not been filled in yet — they ' +
+          'are not lost data, and counting them would overstate every total on every page. The two ' +
+          'reasons are broken out below so both under- and over-filtering are visible.' })
+    ]);
+
+    /* Anything that needs a human to look at it. */
+    var flags = [];
+    var unknownBets = Object.keys(rep.unknownBets).sort();
+    var unknownInits = Object.keys(rep.unknownInitiatives).sort();
+
+    if (unknownBets.length) {
+      flags.push({
+        title: 'Big bet names not on the approved list',
+        note: 'These appeared in the workbook but are not in the Data Validation reference. ' +
+          'They are still shown, grouped under "Other / programme".',
+        names: unknownBets
+      });
+    }
+    if (unknownInits.length) {
+      flags.push({
+        title: 'Initiative names not on the approved list',
+        note: 'Usually a typo or a renamed initiative. Worth aligning the log\'s dropdowns ' +
+          'so filtering stays clean.',
+        names: unknownInits
+      });
+    }
+    if (rep.duplicateRefs.length) {
+      flags.push({
+        title: 'Duplicate references',
+        note: 'The same reference appears more than once in a tab, which double-counts in every total.',
+        names: rep.duplicateRefs.slice().sort()
+      });
+    }
+    if (rep.truncatedSheets.length) {
+      flags.push({
+        title: 'Very large tabs were read only in part',
+        note: 'A tab exceeded the safe reading limits in this file. Totals for it are incomplete.',
+        names: rep.truncatedSheets
+      });
+    }
+    KINDS.forEach(function (k) {
+      if (rep.categories[k].capped) {
+        flags.push({
+          title: 'The ' + structure.sheets[k].sheet + ' tab hit the row limit',
+          note: 'Only the first ' + limits.maxRowsPerCategory + ' items were read.',
+          names: []
+        });
+      }
+    });
+
+    var qualityCard = el('section', { class: 'card' }, [
+      el('div', { class: 'card-bar' }, el('div', null, [
+        el('div', { class: 'card-title', text: 'Needs a look' }),
+        el('div', { class: 'card-sub',
+          text: flags.length ? plural(flags.length, 'finding') : 'No findings from this load' })
+      ])),
+      flags.length
+        ? el('div', { class: 'card-pad' }, flags.map(function (f) {
+            return el('div', { style: 'margin-bottom:16px' }, [
+              el('div', { class: 'm-label', text: f.title }),
+              el('p', { class: 'card-sub', style: 'margin-bottom:7px', text: f.note }),
+              f.names.length
+                ? el('div', { class: 'chips' }, f.names.slice(0, 60).map(function (n) {
+                    return el('span', { class: 'chip chip-warn', text: n });
+                  }))
+                : null,
+              f.names.length > 60
+                ? el('p', { class: 'card-sub', text: 'and ' + (f.names.length - 60) + ' more' })
+                : null
+            ]);
+          }))
+        : el('div', { class: 'empty' }, [
+            el('div', { class: 'empty-title', text: 'Nothing to flag' }),
+            el('div', { class: 'empty-sub',
+              text: 'Every name matched the approved lists and no duplicate references were found.' })
+          ]),
+      el('div', { class: 'note',
+        text: rep.freeTextDates + ' date cells held free text rather than a date (for example "TBC" or ' +
+          '"end of prog"). These are shown exactly as written and never counted as overdue. ' +
+          (rep.validationSheetPresent
+            ? 'The Data Validation tab supplied ' + rep.validationRowsRead + ' reference rows.'
+            : 'No Data Validation tab was found, so only the names baked into this file and those used ' +
+              'by RAID rows are available for filtering.') })
+    ]);
+
+    /* Everything the template detectors suppressed, with counts. This is the
+       page to check first if a total looks wrong in either direction. */
+    var templateCard = el('section', { class: 'card' }, [
+      el('div', { class: 'card-bar' }, el('div', null, [
+        el('div', { class: 'card-title', text: 'Template text found in the log' }),
+        el('div', { class: 'card-sub',
+          text: rep.templateValues.length
+            ? plural(rep.templateValues.length, 'value') + ' treated as scaffolding rather than content'
+            : 'None found in this workbook' })
+      ])),
+      rep.templateValues.length
+        ? el('div', { class: 'tbl-wrap' }, el('table', { class: 'ds-tbl narrow' }, [
+            colgroup([13, 17, 33, 7, 30]),
+            el('thead', null, el('tr', null, [
+              el('th', { text: 'Tab' }),
+              el('th', { text: 'Column' }),
+              el('th', { text: 'Value' }),
+              el('th', { class: 'num', text: 'Rows' }),
+              el('th', { text: 'Why it was treated as template' })
+            ])),
+            el('tbody', null, rep.templateValues.slice(0, 40).map(function (t) {
+              return el('tr', null, [
+                el('td', { class: 'meta', text: t.sheet }),
+                el('td', { class: 'meta', text: t.heading }),
+                el('td', { text: t.value.length > 160 ? t.value.slice(0, 160) + '…' : t.value }),
+                el('td', { class: 'num', text: String(t.rows) }),
+                el('td', { class: 'meta', text: t.reason })
+              ]);
+            }))
+          ]))
+        : el('div', { class: 'empty' }, [
+            el('div', { class: 'empty-title', text: 'No template text detected' }),
+            el('div', { class: 'empty-sub',
+              text: 'Every value in the title and description columns looked like real content.' })
+          ]),
+      rep.templateValues.length > 40
+        ? el('div', { class: 'note',
+            text: 'Showing the first 40 of ' + rep.templateValues.length + ' distinct values.' })
+        : null,
+      el('div', { class: 'note',
+        text: 'Three checks run, none of which depends on knowing the log\'s wording. ' +
+          'A value is template text if it matches the example entry written above the data rows ' +
+          'on that tab, if nothing but template vocabulary is left once column references, ' +
+          'punctuation and digits are stripped, or if it appears in ' +
+          limits.templateRepeatThreshold + ' or more rows of the same column. The first two ' +
+          'remove the value from display as well as from the counts. The third only stops it ' +
+          'counting as content, leaving the text on screen in case the repetition is genuine. ' +
+          'Only free-prose columns are checked, so scored columns such as impact and likelihood ' +
+          'are never altered.' })
+    ]);
+
+    return frag([reportingDateCard(), loadCard, qualityCard, templateCard]);
+  }
+
+  /* ── data contract (what this file expects) ─────────────────────────────── */
+  function contractView() {
+    var props = [
+      'No third-party code: zero libraries, frameworks or vendored snippets.',
+      'No network activity: no fetch, XHR, WebSocket, remote script, font or image. ' +
+        'A Content-Security-Policy in the document head has the browser enforce this.',
+      'No RAID content in this file: only the sheet and column layout and the approved ' +
+        'big bet and initiative names.',
+      'Nothing persisted: no cookies, localStorage, sessionStorage or IndexedDB. ' +
+        'Uploaded data is held in memory for this tab only.',
+      'No dynamic code execution: no eval, no Function constructor, no string timers.',
+      'No markup built from strings: every element is created programmatically and every ' +
+        'workbook value is written as text, so a crafted workbook cannot inject script.',
+      'Bounded parsing: file size, archive entries, decompressed size, cell counts and ' +
+        'value lengths are all capped.',
+      'One personal column is read: Owner, shown in an item\u2019s detail beside the dates. ' +
+        'v2.3 added it at the programme team\u2019s request; v2.2 and earlier read no personal ' +
+        'columns at all. Squad Lead, Project Manager, Raised By and the dependency lead ' +
+        'columns remain unmapped in the file structure, so no code path can reach them.'
+    ];
+
+    var securityCard = el('section', { class: 'card' }, [
+      el('div', { class: 'card-bar' }, el('div', null, [
+        el('div', { class: 'card-title', text: 'How this file behaves' }),
+        el('div', { class: 'card-sub', text: 'Claims a reviewer can check against the source' })
+      ])),
+      el('div', { class: 'card-pad' },
+        el('ul', { class: 'props' }, props.map(function (p) { return el('li', { text: p }); }))),
+      el('div', { class: 'note',
+        text: 'Every limit below is declared in one place in the source (SSB.limits), and the ' +
+          'structure on this page is the single baked-in JSON block. Nothing else in the file ' +
+          'contains programme content.' })
+    ]);
+
+    var limitRows = [
+      ['Workbook file size', fileSize(limits.maxFileBytes)],
+      ['Parts inside the workbook', limits.maxZipEntries],
+      ['Decompressed size, per part', fileSize(limits.maxEntryOutBytes)],
+      ['Decompressed size, total', fileSize(limits.maxTotalOutBytes)],
+      ['Cells read per tab', limits.maxCellsPerSheet],
+      ['Characters kept per cell', limits.maxCellChars],
+      ['Items read per RAID tab', limits.maxRowsPerCategory]
+    ];
+
+    var limitsCard = el('section', { class: 'card' }, [
+      el('div', { class: 'card-bar' }, el('div', null, [
+        el('div', { class: 'card-title', text: 'Input limits' }),
+        el('div', { class: 'card-sub', text: 'Applied before and during parsing' })
+      ])),
+      el('div', { class: 'tbl-wrap' }, el('table', { class: 'ds-tbl narrow' }, [
+        el('thead', null, el('tr', null, [
+          el('th', { text: 'Limit' }), el('th', { text: 'Value' })
+        ])),
+        el('tbody', null, limitRows.map(function (r) {
+          return el('tr', null, [
+            el('td', { text: r[0] }),
+            el('td', { class: 'mono', text: String(r[1]) })
+          ]);
+        }))
+      ]))
+    ]);
+
+    var sheetCards = KINDS.map(function (key) {
+      var def = structure.sheets[key];
+      return el('section', { class: 'card' }, [
+        el('div', { class: 'card-bar' }, el('div', null, [
+          el('div', { class: 'card-title', text: def.sheet + ' tab' }),
+          el('div', { class: 'card-sub',
+            text: 'Data from row ' + def.firstDataRow + ' · references must start with "' +
+              def.refPrefix + '" · ' + plural(def.columns.length, 'column') + ' read' })
+        ])),
+        el('div', { class: 'callout callout-tint', style: 'margin:14px 18px' }, [
+          el('div', { class: 'm-label', text: 'When a row counts as an item' }),
+          el('p', { style: 'margin-bottom:7px', text: def.keepNote }),
+          el('div', { class: 'chips' }, def.keepIfAny.map(function (letter) {
+            var col = def.byLetter[letter];
+            return el('span', { class: 'chip', text: letter + ' · ' + col.heading });
+          }))
+        ]),
+        el('div', { class: 'tbl-wrap' }, el('table', { class: 'ds-tbl narrow' }, [
+          colgroup([10, 26, 38, 12, 14]),
+          el('thead', null, el('tr', null, [
+            el('th', { class: 'num', text: 'Column' }),
+            el('th', { text: 'Field' }),
+            el('th', { text: 'Heading' }),
+            el('th', { text: 'Read as' }),
+            el('th', { text: 'Counts as content' })
+          ])),
+          el('tbody', null, def.columns.map(function (c) {
+            var counts = def.keepIfAny.indexOf(c.col) !== -1;
+            return el('tr', null, [
+              el('td', { class: 'num mono', text: c.col }),
+              el('td', { class: 'mono', text: c.field }),
+              el('td', { text: c.heading }),
+              el('td', { class: 'meta', text: c.type }),
+              el('td', { class: 'meta', text: counts ? 'yes' : '—' })
+            ]);
+          }))
+        ]))
+      ]);
+    });
+
+    var validationSource = DATA ? DATA.betInitiatives : structure.validation;
+    var validationCard = el('section', { class: 'card' }, [
+      el('div', { class: 'card-bar' }, el('div', null, [
+        el('div', { class: 'card-title', text: 'Approved big bet and initiative names' }),
+        el('div', { class: 'card-sub',
+          text: DATA
+            ? 'Baked-in reference list, extended with anything found in this workbook'
+            : 'Baked into this file from the log\'s Data Validation tab' })
+      ])),
+      el('div', { class: 'card-pad' }, Object.keys(validationSource)
+        .sort(function (a, b) {
+          var ia = structure.bets.indexOf(a), ib = structure.bets.indexOf(b);
+          if (ia !== -1 && ib !== -1) return ia - ib;
+          if (ia !== -1) return -1;
+          if (ib !== -1) return 1;
+          return a < b ? -1 : 1;
+        })
+        .map(function (bet) {
+          var names = validationSource[bet];
+          return el('div', { style: 'margin-bottom:16px' }, [
+            el('div', { class: 'm-label',
+              text: bet + (structure.bets.indexOf(bet) === -1 ? ' (not a big bet)' : '') +
+                ' · ' + plural(names.length, 'initiative') }),
+            el('div', { class: 'chips' }, names.map(function (n) {
+              var approved = !!structure.lookup.initiative[structure.lookup.fold(n)];
+              return el('span', { class: 'chip' + (approved ? '' : ' chip-warn'), text: n });
+            }))
+          ]);
+        })),
+      el('div', { class: 'note',
+        text: 'Near-duplicate names are kept exactly as the log records them rather than merged, ' +
+          'so nothing is silently renamed. Matching is case- and spacing-insensitive. ' +
+          'Amber chips are names used in the workbook that are not on the approved list.' })
+    ]);
+
+    var head = DATA ? null : el('section', { class: 'card' }, [
+      el('div', { class: 'callout callout-tint', style: 'margin-top:16px',
+        text: 'No RAID data is loaded. This view describes what the dashboard expects; ' +
+          'upload the workbook to populate the rest.' }),
+      el('div', { class: 'card-pad', style: 'padding-top:0' },
+        el('button', { class: 'btn btn-primary', type: 'button', text: 'Upload RAID data',
+          on: { click: openUpload } }))
+    ]);
+
+    return frag([head, securityCard, limitsCard, sheetCards, validationCard]);
+  }
+
+  /* ── renderers ──────────────────────────────────────────────────────────── */
+  function renderBets() {
+    var items = [{ key: 'ALL', label: 'All big bets' }];
+    DATA.bets.forEach(function (b) { items.push({ key: b, label: b }); });
+    var hasOther = KINDS.some(function (k) {
+      return DATA[k].some(function (x) { return isOther(betsOf(x, k)); });
+    });
+    if (hasOther) items.push({ key: 'OTHER', label: 'Other / programme' });
+
+    fill(byId('bets'), [
+      el('span', { class: 'lbl', text: 'Big bet' }),
+      items.map(function (it) {
+        return el('button', {
+          class: 'bet' + (state.bet === it.key ? ' on' : ''),
+          type: 'button',
+          'aria-pressed': String(state.bet === it.key),
+          on: { click: function () {
+            state.bet = it.key; expanded = {}; renderAll();
+          } }
+        }, [it.label, el('span', { class: 'c', text: String(openCountForBet(it.key)) })]);
+      })
+    ]);
+  }
+
+  function renderKpis() {
+    var r = filtered('risks'), i = filtered('issues'),
+        a = filtered('assumptions'), d = filtered('dependencies');
+    var severe = r.concat(i).filter(function (x) {
+      return lvl(x) === 'High' || lvl(x) === 'Critical';
+    }).length;
+    var overdue = 0;
+    [['risks', r], ['issues', i], ['assumptions', a], ['dependencies', d]].forEach(function (p) {
+      p[1].forEach(function (x) {
+        if (overdueInfo(x, dueField(p[0])).state === 'overdue') overdue++;
+      });
+    });
+    var word = state.status === 'All' ? 'All statuses' : state.status;
+
+    var cards = [
+      { n: r.length, label: 'Risks', sub: word, go: 'risks' },
+      { n: i.length, label: 'Issues', sub: word, go: 'issues' },
+      { n: a.length, label: 'Assumptions', sub: word, go: 'assumptions' },
+      { n: d.length, label: 'Dependencies', sub: word, go: 'dependencies' },
+      { n: severe, label: 'High & critical', sub: 'Risks and issues', go: 'risks', cls: 'sev' },
+      { n: overdue, label: 'Overdue', sub: 'Against due date', go: 'all', cls: 'warn' }
+    ];
+
+    fill(byId('kpis'), cards.map(function (c) {
+      return el('button', {
+        class: 'metric ' + (c.cls || ''), type: 'button',
+        on: { click: function () {
+          state.view = c.go;
+          if (c.cls === 'warn') state.overdueOnly = true;
+          if (c.cls === 'sev') {
+            LEVELS.forEach(function (l) { state.levels[l] = (l === 'Critical' || l === 'High'); });
+          }
+          renderAll();
+        } }
+      }, [
+        el('div', { class: 'm-label', text: c.label }),
+        el('div', { class: 'm-value', text: String(c.n) }),
+        el('div', { class: 'm-sub', text: c.sub })
+      ]);
+    }));
+  }
+
+  function renderViews() {
+    var lastGroup = '';
+    var nodes = [];
+    SECTIONS.forEach(function (s) {
+      if (s.group !== lastGroup) {
+        nodes.push(el('div', { class: 'side-sep', text: s.group }));
+        lastGroup = s.group;
+      }
+      var available = !!DATA || ALWAYS_AVAILABLE[s.key];
+      var n = DATA ? viewCount(s.key) : null;
+      nodes.push(el('button', {
+        class: 'nav-item' + (state.view === s.key ? ' active' : ''),
+        type: 'button',
+        disabled: !available,
+        title: available ? null : 'Upload the RAID log to use this view',
+        on: { click: function () {
+          state.view = s.key;
+          renderAll();
+          window.scrollTo({ top: 0, behavior: 'smooth' });
+        } }
+      }, [
+        icon(s.icon),
+        s.label,
+        n === null ? null : el('span', { class: 'n', text: String(n) })
+      ]));
+    });
+    fill(byId('views'), nodes);
+
+    if (window.innerWidth <= 900) {
+      var active = byId('views').querySelector('.nav-item.active');
+      if (active && active.scrollIntoView) {
+        active.scrollIntoView({ inline: 'center', block: 'nearest' });
+      }
+    }
+
+    var section = SECTIONS.filter(function (s) { return s.key === state.view; })[0];
+    var scope = (!DATA || state.bet === 'ALL') ? ''
+      : state.bet === 'OTHER' ? ' — Other / programme-level' : ' — ' + state.bet;
+    byId('viewTitle').textContent =
+      state.view === 'overview' ? 'SSB RAID Dashboard v2.3' : section.title;
+    byId('viewSub').textContent = section.sub + scope;
+  }
+
+  function renderFilters() {
+    var showLevels = state.view !== 'assumptions' && state.view !== 'dependencies';
+
+    var initiatives;
+    if (state.bet !== 'ALL' && state.bet !== 'OTHER' && DATA.betInitiatives[state.bet]) {
+      initiatives = DATA.betInitiatives[state.bet];
+    } else {
+      var seen = {};
+      DATA.bets.forEach(function (b) {
+        (DATA.betInitiatives[b] || []).forEach(function (i) { seen[i] = 1; });
+      });
+      initiatives = Object.keys(seen).sort(function (x, y) {
+        return x.toLowerCase() < y.toLowerCase() ? -1 : 1;
+      });
+    }
+    if (state.initiative !== 'ALL' && initiatives.indexOf(state.initiative) === -1) {
+      state.initiative = 'ALL';
+    }
+
+    var levelCounts = {};
+    LEVELS.forEach(function (L) { levelCounts[L] = 0; });
+    ['risks', 'issues'].forEach(function (k) {
+      DATA[k].forEach(function (x) {
+        if (!matchBet(x, k) || !matchStatus(x) || !matchInitiative(x, k) || !matchQuery(x)) return;
+        levelCounts[lvl(x)]++;
+      });
+    });
+
+    function partialRender() {
+      renderKpis(); renderViews(); renderFilters(); renderContent();
+    }
+
+    var statusGroup = el('div', { class: 'fgroup' }, [
+      el('span', { class: 'lbl', text: 'Status' }),
+      el('div', { class: 'seg' }, ['Open', 'Closed', 'All'].map(function (s) {
+        return el('button', {
+          type: 'button', class: state.status === s ? 'on' : '', text: s,
+          on: { click: function () { state.status = s; renderAll(); } }
+        });
+      }))
+    ]);
+
+    var levelGroup = showLevels ? el('div', { class: 'fgroup' }, [
+      el('span', { class: 'lbl', text: 'Level' }),
+      LEVELS.map(function (L) {
+        return el('button', {
+          class: 'pill' + (state.levels[L] ? ' on' : ''), type: 'button', 'data-lvl': L,
+          on: { click: function () { state.levels[L] = !state.levels[L]; partialRender(); } }
+        }, [
+          el('i', { class: 'dot',
+            style: 'background:' + (state.levels[L] ? 'rgba(255,255,255,.9)' : LEVEL_COLOUR[L]) }),
+          L,
+          el('span', { class: 'c', text: String(levelCounts[L]) })
+        ]);
+      })
+    ]) : null;
+
+    var select = el('select', { 'aria-label': 'Filter by initiative',
+      on: { change: function (e) { state.initiative = e.target.value; partialRender(); } } },
+      [el('option', { value: 'ALL', text: 'All initiatives', selected: state.initiative === 'ALL' })]
+        .concat(initiatives.map(function (i) {
+          return el('option', { value: i, text: i, selected: state.initiative === i });
+        })));
+
+    var searchBox = el('input', {
+      type: 'search', placeholder: 'Search reference, title or text', value: state.q,
+      'aria-label': 'Search RAID items'
+    });
+    var searchTimer = null;
+    searchBox.addEventListener('input', function () {
+      var v = searchBox.value;
+      clearTimeout(searchTimer);
+      searchTimer = setTimeout(function () {
+        state.q = v.trim();
+        partialRender();
+        var box = byId('filters').querySelector('input[type=search]');
+        if (box) { box.focus(); box.setSelectionRange(box.value.length, box.value.length); }
+      }, 220);
+    });
+
+    function resetFilters() {
+      state.status = 'Open'; state.initiative = 'ALL'; state.overdueOnly = false; state.q = '';
+      LEVELS.forEach(function (l) { state.levels[l] = true; });
+      renderAll();
+    }
+
+    var nodes = [el('div', { class: 'filters' }, [
+      statusGroup,
+      levelGroup,
+      el('div', { class: 'fgroup' }, [el('span', { class: 'lbl', text: 'Initiative' }), select]),
+      el('label', { class: 'toggle' }, [
+        el('input', { type: 'checkbox', checked: state.overdueOnly,
+          on: { change: function (e) { state.overdueOnly = e.target.checked; partialRender(); } } }),
+        ' Overdue only'
+      ]),
+      el('span', { class: 'spacer' }),
+      searchBox,
+      el('button', { class: 'btn btn-ghost btn-sm', type: 'button', text: 'Reset',
+        on: { click: resetFilters } })
+    ])];
+
+    var af = activeFilters();
+    if (af.length) {
+      nodes.push(el('div', { class: 'fbanner' }, [
+        el('span', { text: 'Narrowed to ' + af.join(', ') + ' — all counts on this page reflect that.' }),
+        el('button', { class: 'btn btn-ghost btn-sm', type: 'button', text: 'Clear filters',
+          on: { click: resetFilters } })
+      ]));
+    }
+
+    fill(byId('filters'), nodes);
+  }
+
+  function renderContent() {
+    var content = byId('content');
+    if (state.view === 'contract') { fill(content, contractView()); return; }
+    if (!DATA) { fill(content, null); return; }
+    if (state.view === 'quality') { fill(content, qualityView()); return; }
+    if (state.view === 'overview') { fill(content, overviewView()); return; }
+
+    var DEP_NOTE = 'Owned by the outbound bet · overdue measured against the dependency deadline';
+
+    if (state.view === 'risks') {
+      var r = applySort(filtered('risks'), 'risks');
+      fill(content, itemCard('Risks', 'risks', r, riskLikeTable('risks', r)));
+    } else if (state.view === 'issues') {
+      var i = applySort(filtered('issues'), 'issues');
+      fill(content, itemCard('Issues', 'issues', i, riskLikeTable('issues', i)));
+    } else if (state.view === 'assumptions') {
+      var a = applySort(filtered('assumptions'), 'assumptions');
+      fill(content, itemCard('Assumptions', 'assumptions', a, assumptionsTable(a)));
+    } else if (state.view === 'dependencies') {
+      var d = applySort(filtered('dependencies'), 'dependencies');
+      fill(content, [
+        itemCard('Dependencies owned by ' +
+          (state.bet === 'ALL' ? 'all bets' : state.bet === 'OTHER' ? 'other / programme' : state.bet),
+          'dependencies', d, dependenciesTable(d), DEP_NOTE),
+        inboundCard()
+      ]);
+    } else {
+      var R = applySort(filtered('risks'), 'risks');
+      var A = applySort(filtered('assumptions'), 'assumptions');
+      var I = applySort(filtered('issues'), 'issues');
+      var D = applySort(filtered('dependencies'), 'dependencies');
+      fill(content, [
+        /* Risks, issues, assumptions, dependencies — the order the sidebar,
+           the metric cards and the CSV exports all use. */
+        itemCard('Risks', 'risks', R, riskLikeTable('risks', R)),
+        itemCard('Issues', 'issues', I, riskLikeTable('issues', I)),
+        itemCard('Assumptions', 'assumptions', A, assumptionsTable(A)),
+        itemCard('Dependencies', 'dependencies', D, dependenciesTable(D), DEP_NOTE)
+      ]);
+    }
+  }
+
+  function renderFootnote() {
+    byId('footnote').textContent =
+      'Overdue is calculated from each item\'s due date against ' + longDate(AS_AT) +
+      ', for open items only; closed items are marked closed rather than overdue. ' +
+      'Big bet and initiative names follow the log\'s Data Validation tab, with underscores removed. ' +
+      'Dependencies are owned by their outbound bet — the one that raised it and has to deliver ' +
+      'against it — so selecting a big bet shows the dependencies that bet owns, and each one is ' +
+      'counted once rather than at both ends. Anything owed to the selected bet by another bet is ' +
+      'listed separately at the bottom of the Dependencies view. Inbound bets remain searchable. ' +
+      'An item is only counted if it has a title or a description. A reference with nothing but ' +
+      'dropdown selections is a pre-numbered blank row, and the log\'s own template text does not ' +
+      'count as a description; the Data quality view lists every row excluded and every value ' +
+      'treated as template. ' +
+      'Click any row to open its full description, plan and progress update. ' +
+      'Sections are listed in reference order by default \u2014 click any column heading to ' +
+      're-sort. The Owner recorded in the log is shown in each item\u2019s detail; squad lead, ' +
+      'project manager, raised by and dependency lead are not read. ' +
+      'Data is held in this browser tab only and is not saved anywhere — refreshing clears it.';
+  }
+
+  function renderStamp() {
+    if (!DATA) {
+      byId('stampDate').textContent = 'No data loaded';
+      byId('stampSrc').textContent = 'Upload the RAID log to begin';
+      fill(byId('footVer'), ['SSB RAID', el('br'), 'Dashboard v2.3', el('br'), 'no data loaded']);
+      return;
+    }
+    var m = DATA.meta;
+    var src = m.dateSource;
+    var fromReport = src === 'saved' || src === 'created';
+    byId('stampDate').textContent = 'Data as at ' + longDate(m.loaded || AS_AT) +
+      (src && !fromReport ? ' \u00b7 ' + DATE_SOURCE_LABEL[src] : '');
+    byId('stampDate').title = 'Reporting date: ' + longDate(m.loaded || AS_AT) +
+      '\nTaken from ' + (m.dateNote || 'the report') +
+      '\nToday on this device is ' + longDate(SYSTEM_TODAY) +
+      '\n\nEvery overdue calculation measures from the reporting date.';
+    byId('stampSrc').textContent = (m.source || 'RAID log') + ' · in memory only';
+    fill(byId('footVer'), [
+      'SSB RAID', el('br'), 'Dashboard v2.3', el('br'), longDate(m.loaded || AS_AT)
+    ]);
+  }
+
+  function renderAll() {
+    var showDash = !!DATA || state.view === 'contract';
+    byId('landing').classList.toggle('hidden', showDash);
+    byId('dash').classList.toggle('hidden', !showDash);
+
+    var dataViews = !!DATA && state.view !== 'contract';
+    byId('bets').classList.toggle('hidden', !dataViews);
+    byId('kpis').classList.toggle('hidden', !dataViews);
+    byId('filters').classList.toggle('hidden', !dataViews || state.view === 'quality');
+    byId('footnote').classList.toggle('hidden', !dataViews);
+
+    renderViews();
+    if (DATA) {
+      renderBets(); renderKpis(); renderFilters(); renderFootnote();
+    }
+    renderContent();
+  }
+
+  /* ── CSV export ─────────────────────────────────────────────────────────────
+     Columns and headings come from the same structure the parser uses, so an
+     export always matches what was read. Values are quoted and internal quotes
+     doubled; a UTF-8 byte-order mark is prefixed so Excel opens it in the right
+     encoding. Fields beginning with =, +, - or @ are prefixed with a single
+     quote: without that, a spreadsheet would treat a cell such as "=cmd|..." as
+     a formula on open, which is the CSV-injection problem. */
+  function csvEscape(value) {
+    var s = String(value === undefined || value === null ? '' : value);
+    if (/^[=+\-@\t\r]/.test(s)) s = "'" + s;
+    return '"' + s.replace(/"/g, '""') + '"';
+  }
+
+  function downloadCsv(kind) {
+    var rows = applySort(filtered(kind), kind);
+    var def = structure.sheets[kind];
+    var field = dueField(kind);
+
+    var headings = def.columns.map(function (c) { return c.heading; })
+      .concat(['Overdue (calculated)', 'Workbook row']);
+
+    var lines = [headings.map(csvEscape).join(',')];
+    rows.forEach(function (item) {
+      var cells = def.columns.map(function (c) {
+        var v = item[c.field];
+        if (v && typeof v === 'object') v = v.t || '';
+        return csvEscape(v);
+      });
+      var oi = overdueInfo(item, field);
+      cells.push(csvEscape(
+        oi.state === 'overdue' ? oi.days + ' days over'
+          : oi.state === 'closed' ? 'Closed' : oi.label));
+      cells.push(csvEscape(item.sourceRow));
+      lines.push(cells.join(','));
+    });
+
+    var csv = '\uFEFF' + lines.join('\r\n');
+    var filename = 'SSB_RAID_v2.3_' + kind + '_' +
+      (state.bet === 'ALL' ? 'all_bets' : state.bet.replace(/[^A-Za-z0-9]+/g, '_')) +
+      '_' + AS_AT + '.csv';
+
+    /* A local blob, created and revoked in this tab. Not a network request. */
+    var url = URL.createObjectURL(new Blob([csv], { type: 'text/csv;charset=utf-8;' }));
+    var link = el('a', { href: url, download: filename });
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    setTimeout(function () { URL.revokeObjectURL(url); }, 1000);
+  }
+
+  /* ── upload ─────────────────────────────────────────────────────────────── */
+  function setMessage(target, kind, text) {
+    var box = byId(target);
+    box.className = 'msg show ' + kind;
+    box.textContent = text;
+  }
+  function clearMessages() {
+    ['landStatus', 'upStatus'].forEach(function (id) {
+      var box = byId(id);
+      box.className = 'msg';
+      box.textContent = '';
+    });
+  }
+  function openUpload() {
+    byId('uploadModal').classList.add('show');
+    byId('dropModal').focus();
+  }
+  function closeUpload() { byId('uploadModal').classList.remove('show'); }
+
+  /* Where to report progress: the dialog if it is open, otherwise the landing card. */
+  function messageTarget() {
+    return byId('uploadModal').classList.contains('show') ? 'upStatus' : 'landStatus';
+  }
+
+  function handleFile(file) {
+    var target = messageTarget();
+    if (!file) return;
+
+    if (!/\.xls[xm]$/i.test(file.name)) {
+      setMessage(target, 'err',
+        'That is not an .xlsx workbook. Open the RAID log in Excel, save it as .xlsx and try again.');
+      return;
+    }
+    if (file.size > limits.maxFileBytes) {
+      setMessage(target, 'err', 'That file is ' + fileSize(file.size) +
+        ', larger than the ' + fileSize(limits.maxFileBytes) + ' this dashboard will read.');
+      return;
+    }
+    if (typeof DecompressionStream === 'undefined') {
+      setMessage(target, 'err',
+        'This browser cannot unpack .xlsx files. Please open the dashboard in Chrome, Edge or Firefox.');
+      return;
+    }
+
+    setMessage(target, 'busy', 'Reading ' + file.name + '…');
+
+    var reader = new FileReader();
+    reader.onerror = function () {
+      setMessage(target, 'err', 'The file could not be read. Try re-saving it and upload again.');
+    };
+    reader.onload = function () {
+      /* The reporting date is settled from the workbook's own timestamps and
+         the file's download date before anything is rendered, so the stamp,
+         the overdue columns and the exports all agree. */
+      SSB.normalise.fromArrayBuffer(reader.result, {
+        source: file.name, sizeBytes: file.size, loaded: SYSTEM_TODAY
+      }).then(function (model) {
+        var total = KINDS.reduce(function (a, k) { return a + model[k].length; }, 0);
+        if (!total) {
+          setMessage(target, 'err',
+            'No RAID items were found. Check the tab names and that references still start with "' +
+            structure.sheets.risks.refPrefix + '".');
+          return;
+        }
+        DATA = model;
+
+        /* Settle the reporting date from the workbook's own timestamps and the
+           file's download date, before anything is rendered. */
+        var list = dateCandidates({ lastModified: file.lastModified }, model.meta.props);
+        model.meta.candidates = list;
+        model.meta.detected = list[0];
+        setAsAt(list[0].iso, list[0].source, list[0].note);
+
+        expanded = {};
+        if (state.view === 'contract') state.view = 'overview';
+        renderStamp();
+        renderAll();
+
+        var blanks = KINDS.reduce(function (a, k) {
+          return a + model.report.categories[k].skippedEmpty;
+        }, 0);
+        var rep = model.report;
+        var findings = Object.keys(rep.unknownBets).length +
+          Object.keys(rep.unknownInitiatives).length + rep.duplicateRefs.length;
+        setMessage(target, 'ok',
+          'Loaded ' + total + ' items: ' + model.risks.length + ' risks, ' +
+          model.issues.length + ' issues, ' + model.assumptions.length + ' assumptions, ' +
+          model.dependencies.length + ' dependencies. Data as at ' + longDate(AS_AT) +
+          ' (' + (model.meta.dateNote || 'the report') + ').' +
+          (blanks ? ' ' + blanks + ' blank or template rows were excluded.' : '') +
+          (findings ? (findings === 1
+            ? ' One name or reference needs a look — see the Data quality view.'
+            : ' ' + findings + ' names or references need a look — see the Data quality view.')
+            : ''));
+      }).catch(function (err) {
+        setMessage(target, 'err',
+          (err && err.message) ? err.message : 'That workbook could not be read.');
+      });
+    };
+    reader.readAsArrayBuffer(file);
+  }
+
+  function clearData() {
+    DATA = null;
+    expanded = {};
+    state.bet = 'ALL';
+    state.view = 'overview';
+    state.initiative = 'ALL';
+    state.q = '';
+    state.overdueOnly = false;
+    state.status = 'Open';
+    LEVELS.forEach(function (l) { state.levels[l] = true; });
+    byId('fileInput').value = '';
+    renderStamp();
+    renderAll();
+    clearMessages();
+    setMessage('landStatus', 'ok', 'RAID data cleared from memory. Nothing was saved to this device.');
+    closeUpload();
+  }
+
+  /* ── wiring ─────────────────────────────────────────────────────────────── */
+  function wireDropZone(id) {
+    var zone = byId(id);
+    ['dragenter', 'dragover'].forEach(function (evt) {
+      zone.addEventListener(evt, function (e) { e.preventDefault(); zone.classList.add('hot'); });
+    });
+    ['dragleave', 'drop'].forEach(function (evt) {
+      zone.addEventListener(evt, function (e) { e.preventDefault(); zone.classList.remove('hot'); });
+    });
+    zone.addEventListener('drop', function (e) {
+      if (e.dataTransfer && e.dataTransfer.files && e.dataTransfer.files[0]) {
+        handleFile(e.dataTransfer.files[0]);
+      }
+    });
+    zone.addEventListener('click', function () { byId('fileInput').click(); });
+    zone.addEventListener('keydown', function (e) {
+      if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); byId('fileInput').click(); }
+    });
+  }
+
+  wireDropZone('dropLanding');
+  wireDropZone('dropModal');
+
+  byId('fileInput').addEventListener('change', function (e) {
+    if (e.target.files && e.target.files[0]) handleFile(e.target.files[0]);
+    e.target.value = '';                     /* allow re-picking the same file */
+  });
+
+  byId('openUpload').addEventListener('click', openUpload);
+  byId('closeUpload').addEventListener('click', closeUpload);
+  byId('clearData').addEventListener('click', clearData);
+  byId('uploadModal').addEventListener('click', function (e) {
+    if (e.target === byId('uploadModal')) closeUpload();
+  });
+  document.addEventListener('keydown', function (e) {
+    if (e.key === 'Escape') closeUpload();
+  });
+
+  /* ── boot ───────────────────────────────────────────────────────────────── */
+  renderStamp();
+  renderAll();
+})(SSB.dom, SSB.structure, SSB.limits);
+</script>
+</body>
+</html>

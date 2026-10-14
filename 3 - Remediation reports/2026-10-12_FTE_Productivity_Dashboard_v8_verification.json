@@ -1,0 +1,29 @@
+[
+  {
+    "file": "FTE_Productivity_Dashboard_v8.html",
+    "path": "C:\\Users\\thomas.hensby\\OneDrive - Accenture\\UU Simpler Smarter Better Programme - 12. HTML audit\\2 - Remediated HTMLs\\FTE_Productivity_Dashboard_v8.html",
+    "passed": [
+      "S1: No external <script src> tags",
+      "S2: No external <link href> stylesheet tags",
+      "S3: CSP meta tag present",
+      "S3a: CSP includes 'connect-src 'none''",
+      "S3a: CSP includes 'object-src 'none''",
+      "S3a: CSP includes 'base-uri 'none''",
+      "S3a: CSP includes 'form-action 'none''",
+      "S4: Referrer-policy: no-referrer present",
+      "S5: No eval() in executable code",
+      "S6: No new Function() in executable code",
+      "S7: No network API calls (fetch/XHR/WebSocket/sendBeacon) in executable code",
+      "S9: CSV export with formula-injection guard detected",
+      "B1: Zero JS console errors on load",
+      "B2: Zero external network requests",
+      "B3: No CSP violations in console",
+      "B4: Page renders with visible content"
+    ],
+    "failed": [],
+    "warnings": [
+      "S8: 33 innerHTML assignment(s) found — verify each uses esc() or builds static markup only"
+    ],
+    "timestamp": "2026-10-12T21:21:26.145Z"
+  }
+]
