@@ -1,4 +1,4 @@
-# Harry's MOT Garage — Full Specification
+﻿# Harry's HTML Garage â€” Full Specification
 **UU Simpler Smarter Better Programme**
 **Version 1.0 | 2026-10-13**
 **Status: Ready for Claude Code**
@@ -7,9 +7,9 @@
 
 ## 1. What This Is
 
-Harry's MOT Garage is an internal HTML remediation and registry service hosted on Tile (tile.accenture.com). It exists because the programme generates standalone single-file HTML tools, and InfoSec/Tech Services require those tools to meet a baseline security standard before running on client machines.
+Harry's HTML Garage is an internal HTML remediation and registry service hosted on Tile (tile.accenture.com). It exists because the programme generates standalone single-file HTML tools, and InfoSec/Tech Services require those tools to meet a baseline security standard before running on client machines.
 
-The service deliberately positions itself as a **roadworthy check, not a full security audit**. It is cheap, fast, and standardised — the HTML equivalent of a UK MOT. No tool leaves Harry's without a certificate. But Harry is not a pen tester, and the UI makes that clear.
+The service deliberately positions itself as a **roadworthy check, not a full security audit**. It is cheap, fast, and standardised â€” the HTML equivalent of a UK MOT. No tool leaves Harry's without a certificate. But Harry is not a pen tester, and the UI makes that clear.
 
 **The service has two phases.** Build Phase 1 first. Phase 2 is additive and does not require rearchitecting Phase 1.
 
@@ -20,15 +20,15 @@ The service deliberately positions itself as a **roadworthy check, not a full se
 ### Banner / Informational Copy
 Plain, direct English. No jargon. Explains what the service is, what it is not, and what users need to do. This appears in onboarding text, help sections, and the certificate itself.
 
-Example: *"Harry's Garage runs a standardised security check on your HTML tool and registers it in the programme catalog. This is not a full InfoSec audit. It is a baseline hardening pass using an external vulnerability standard. Tools must be re-registered every quarter."*
+Example: *"Harry's HTML Garage runs a standardised security check on your HTML tool and registers it in the programme catalog. This is not a full InfoSec audit. It is a baseline hardening pass using an external vulnerability standard. Tools must be re-registered every quarter."*
 
 ### Harry's Voice (Service Persona)
 Harry is the garage owner. South London. Gruff, sardonic, technically competent, seen it all before. He has zero patience for people who think their HTML app is special, but he will fix it and he will stand behind his work.
 
 **Tone rules:**
-- Address users as "Sunshine" or "mate" — never by name
+- Address users as "Sunshine" or "mate" â€” never by name
 - Never effusive, never impressed, never rude enough to be offensive
-- Technically accurate beneath the personality — Harry knows what he's doing
+- Technically accurate beneath the personality â€” Harry knows what he's doing
 - Deliver bad news matter-of-factly, good news with mild contempt
 - Always gives the user what they need, just not warmly
 
@@ -46,25 +46,25 @@ Harry is the garage owner. South London. Gruff, sardonic, technically competent,
 ## 3. Visual Design
 
 ### Aesthetic
-8-bit retro garage. Think: pixel fonts, a muted colour palette (grease-stained greens and greys), CRT scanline overlay, chunky UI elements. The metaphor is a forecourt inspection pit — the tool goes in, Harry looks it over, the certificate comes out.
+8-bit retro garage. Think: pixel fonts, a muted colour palette (grease-stained greens and greys), CRT scanline overlay, chunky UI elements. The metaphor is a forecourt inspection pit â€” the tool goes in, Harry looks it over, the certificate comes out.
 
 ### Key UI Metaphors
-- **Job queue** — tools waiting to be registered or checked
-- **Inspection bay** — the active upload / prompt generation area
-- **Certificate printer** — the download of the remediation certificate
-- **The Board** — the admin catalog view, like a garage job board on the wall
+- **Job queue** â€” tools waiting to be registered or checked
+- **Inspection bay** â€” the active upload / prompt generation area
+- **Certificate printer** â€” the download of the remediation certificate
+- **The Board** â€” the admin catalog view, like a garage job board on the wall
 
 ### Constraints
 - Single HTML file (no build step, inline CSS/JS)
 - Chromium only (Tile SDK requirement)
-- Must work within Tile's hosted environment — no external CDN references, no remote fonts
+- Must work within Tile's hosted environment â€” no external CDN references, no remote fonts
 - Use system font stack with a pixel/monospace option for the 8-bit feel: `font-family: 'Courier New', Courier, monospace` or a base64-inlined pixel font if one is used
-- Dark background preferred — easier to achieve the 8-bit aesthetic without external assets
-- CSP note: Harry's Garage loads the Tile SDK via `<script src="/apps/pages/vendor/tile.js">`. This requires `script-src 'self' 'unsafe-inline'` rather than the `script-src 'unsafe-inline'` used in the standalone tools. This deviation from the blueprint CSP is deliberate — the blueprint applies to data-only tools; Harry's Garage is an SDK-integrated application.
+- Dark background preferred â€” easier to achieve the 8-bit aesthetic without external assets
+- CSP note: Harry's HTML Garage loads the Tile SDK via `<script src="/apps/pages/vendor/tile.js">`. This requires `script-src 'self' 'unsafe-inline'` rather than the `script-src 'unsafe-inline'` used in the standalone tools. This deviation from the blueprint CSP is deliberate â€” the blueprint applies to data-only tools; Harry's HTML Garage is an SDK-integrated application.
 
 ---
 
-## 4. Phase 1 — MVP (No AI Dependency)
+## 4. Phase 1 â€” MVP (No AI Dependency)
 
 ### 4.1 Overview
 
@@ -82,46 +82,46 @@ The remediation workflow is split between the hosted service and the builder's l
 | Item | Action | Who |
 |---|---|---|
 | Create the tile | Private, all-acn, choose slug (e.g. `harrys-garage`) | Tile admin (Thomas) |
-| Enable SQLite | Manage → Settings → Services → Database | Tile admin |
-| Enable Files | Manage → Settings → Services → Files | Tile admin |
-| Publish initial shell | Upload → Finalize → Publish via API | Claude Code / PAT |
+| Enable SQLite | Manage â†’ Settings â†’ Services â†’ Database | Tile admin |
+| Enable Files | Manage â†’ Settings â†’ Services â†’ Files | Tile admin |
+| Publish initial shell | Upload â†’ Finalize â†’ Publish via API | Claude Code / PAT |
 
 AI access is **not required** for Phase 1.
 
-### 4.3 Journey 1 — Generate Security Prompt
+### 4.3 Journey 1 â€” Generate Security Prompt
 
 **User:** Programme team member about to build or remediate an HTML tool.
 
 **Flow:**
 1. User lands on the garage homepage
 2. Harry greets them, explains the two paths: "Building new?" or "Got something that needs looking at?"
-3. User selects "Building new — I need the security prompt"
+3. User selects "Building new â€” I need the security prompt"
 4. Harry delivers a brief withering remark about prevention being better than cure
 5. User clicks download
 6. App serves a pre-built markdown prompt file as a download
 
 **The prompt file** is a self-contained Claude Code system prompt that incorporates:
-- All requirements from `Single-File-HTML-Tool-Blueprint.md` §2, §4, §8, §9
-- The target CSP string from `Security-Remediation-Checklist.md` §C2
+- All requirements from `Single-File-HTML-Tool-Blueprint.md` Â§2, Â§4, Â§8, Â§9
+- The target CSP string from `Security-Remediation-Checklist.md` Â§C2
 - The `esc()` helper pattern
 - The audit comment block format
 - Instructions to run static scan checks before finishing
 
-This file is **static** — it is baked into the app HTML at build time as a JS string literal and served as a Blob download. It does not require AI. It should be versioned (e.g. `harrys-garage-security-prompt-v1.md`) and the version displayed in the UI.
+This file is **static** â€” it is baked into the app HTML at build time as a JS string literal and served as a Blob download. It does not require AI. It should be versioned (e.g. `harrys-garage-security-prompt-v1.md`) and the version displayed in the UI.
 
 **Harry's line on completion:** *"There you go. Follow that and you might not embarrass yourself. Come back when it's done."*
 
-### 4.4 Journey 2 — Register a Remediated Tool
+### 4.4 Journey 2 â€” Register a Remediated Tool
 
 **User:** Programme team member who has completed remediation (via local Claude Code or Claude.ai) and needs to register the tool.
 
 **Flow:**
-1. User selects "I've done the remediation — I need to register it"
+1. User selects "I've done the remediation â€” I need to register it"
 2. Harry: *"Let's see it then."*
 3. Form presented with fields:
    - **Solution name** (text, required)
    - **Solution owner name** (text, required)
-   - **Solution owner email** (email, validated, required — auto-populated from `tile.role().email` if available)
+   - **Solution owner email** (email, validated, required â€” auto-populated from `tile.role().email` if available)
    - **Remediated HTML file** (file upload, `.html` only)
    - **Remediation certificate** (file upload, `.pdf` only)
    - Checkbox: "I agree to return this tool for re-check before the due date"
@@ -129,7 +129,7 @@ This file is **static** — it is baked into the app HTML at build time as a JS 
 5. A registration confirmation is shown with the registration ID and due date
 6. The tool is added to the catalog
 
-**Write access control:** Registration requires a passcode. The passcode is set by the tile admin and displayed on the tile's admin settings page. This prevents unauthenticated writes from any all-acn viewer. The passcode is checked client-side only — this is a programme-process control, not a security boundary.
+**Write access control:** Registration requires a passcode. The passcode is set by the tile admin and displayed on the tile's admin settings page. This prevents unauthenticated writes from any all-acn viewer. The passcode is checked client-side only â€” this is a programme-process control, not a security boundary.
 
 **Storage:**
 ```
@@ -149,26 +149,26 @@ SQLite table: registrations
   status TEXT                  -- computed on read: 'active' | 'due' | 'overdue'
 ```
 
-`status` is computed on read (compare `next_due_at` to today) — not stored as a drifting value.
+`status` is computed on read (compare `next_due_at` to today) â€” not stored as a drifting value.
 
-### 4.5 Journey 3 — Admin Catalog (The Board)
+### 4.5 Journey 3 â€” Admin Catalog (The Board)
 
 **User:** Programme leadership or solution owner checking the registry.
 
 **Flow:**
 1. User navigates to "The Board" (admin view)
-2. Catalog renders from SQLite — all registered tools
+2. Catalog renders from SQLite â€” all registered tools
 3. Each entry shows: solution name, owner name, owner email, registered date, next due date, status badge
 4. Status badges:
-   - ✅ **ROADWORTHY** — more than 2 weeks until due
-   - ⚠️ **DUE SOON** — within 2 weeks of next due date
-   - 🔴 **OVERDUE** — past next due date
+   - âœ… **ROADWORTHY** â€” more than 2 weeks until due
+   - âš ï¸ **DUE SOON** â€” within 2 weeks of next due date
+   - ðŸ”´ **OVERDUE** â€” past next due date
 5. User can click any entry to:
    - Download the original remediated HTML
    - Download the remediation certificate
    - View registration details
 
-**No authentication gate on The Board** — consistent with the programme's file-share permission model. All-acn access means anyone on the tile can view the catalog and download artifacts. This is a deliberate decision.
+**No authentication gate on The Board** â€” consistent with the programme's file-share permission model. All-acn access means anyone on the tile can view the catalog and download artifacts. This is a deliberate decision.
 
 **Harry's presence on The Board:** a small static notice in character: *"All the motors we've put through. Some of 'em are due back. You know who you are."*
 
@@ -177,7 +177,7 @@ SQLite table: registrations
 The remediation certificate generated by local Claude Code must include an MOT countdown footer baked into the remediated HTML. The due date is set at remediation time (registration date + 90 days) and hardcoded into the snippet.
 
 ```html
-<!-- HARRY'S GARAGE — MOT FOOTER. Do not remove. -->
+<!-- Harry's HTML Garage â€” MOT FOOTER. Do not remove. -->
 <div id="harrys-mot-footer" style="position:fixed;bottom:0;left:0;right:0;padding:4px 12px;font-family:monospace;font-size:12px;z-index:9999;">
   <span id="mot-status"></span>
   <script>
@@ -187,13 +187,13 @@ The remediation certificate generated by local Claude Code must include an MOT c
       var days = Math.floor((due - now) / 86400000);
       var el = document.getElementById('mot-status');
       if (days < 0) {
-        el.textContent = '⚠️ Security review overdue — return to Harry\'s Garage';
+        el.textContent = 'âš ï¸ Security review overdue â€” return to Harry\'s Garage';
         el.style.background = '#c0392b'; el.style.color = '#fff';
       } else if (days <= 14) {
-        el.textContent = '⚠️ Security review due in ' + days + ' days — Harry\'s Garage';
+        el.textContent = 'âš ï¸ Security review due in ' + days + ' days â€” Harry\'s Garage';
         el.style.background = '#e67e22'; el.style.color = '#fff';
       } else {
-        el.textContent = '✓ Security review current — next due ' + due.toLocaleDateString('en-GB');
+        el.textContent = 'âœ“ Security review current â€” next due ' + due.toLocaleDateString('en-GB');
         el.style.background = '#27ae60'; el.style.color = '#fff';
       }
     })();
@@ -205,7 +205,7 @@ This snippet is provided to the user as a copyable code block in the post-regist
 
 ---
 
-## 5. Phase 2 — Additive Enhancements (Future)
+## 5. Phase 2 â€” Additive Enhancements (Future)
 
 Phase 2 is deferred. The hosted solution remains deterministic (no AI dependency) in Phase 1. Any AI-powered in-app remediation features are out of scope until Phase 1 is stable and the ai_access request has been approved.
 
@@ -223,13 +223,13 @@ Outstanding Phase 2 decisions:
 | Layer | Technology |
 |---|---|
 | Host | tile.accenture.com (private tile) |
-| Frontend | Single HTML file — inline CSS + JS, no build step |
+| Frontend | Single HTML file â€” inline CSS + JS, no build step |
 | SDK | `/apps/pages/vendor/tile.js` (loaded as classic script) |
-| Storage — catalog | Tile SQLite |
-| Storage — files | Tile Files (shared scope) |
+| Storage â€” catalog | Tile SQLite |
+| Storage â€” files | Tile Files (shared scope) |
 | AI | Not required for Phase 1 |
 | Source control | https://github.com/thensby-afk/agentic |
-| CI deploy | GitHub Actions → Tile Publish API (PAT) |
+| CI deploy | GitHub Actions â†’ Tile Publish API (PAT) |
 
 ### 6.2 Deployment Sequence (First Deploy)
 
@@ -239,12 +239,12 @@ Outstanding Phase 2 decisions:
    - Slug: harrys-garage (or agree slug with team)
    - Note the URL from the create response
 
-2. Enable services via Manage → Settings
+2. Enable services via Manage â†’ Settings
    - SQLite: on
    - Files: on
 
 3. Mint PAT
-   - Manage → Automation
+   - Manage â†’ Automation
    - Scopes: content:write
    - Store in GitHub Actions secret: TILE_PAT
    - Also store TILE_SLUG as a repo variable
@@ -255,7 +255,7 @@ Outstanding Phase 2 decisions:
    POST /mapi/v1/pages/<slug>/publish
    Confirm: { published: true }
 
-5. Smoke test (see §6.3)
+5. Smoke test (see Â§6.3)
 ```
 
 ### 6.3 Smoke Test Checklist
@@ -270,7 +270,7 @@ Outstanding Phase 2 decisions:
 | Files enabled | `tile.files.put('test/ping.txt', new Blob(['ok']), { scope: 'shared' })` | `{ ok: true }` |
 | Files read | `tile.files.get('test/ping.txt', { scope: 'shared' })` | Response with 'ok' body |
 | Zero console errors | Load tile, open DevTools | Zero errors |
-| Zero network requests | DevTools → Network | No external requests |
+| Zero network requests | DevTools â†’ Network | No external requests |
 
 ### 6.4 GitHub Actions Deploy Workflow
 
@@ -330,15 +330,15 @@ CREATE TABLE IF NOT EXISTS registrations (
 
 ```
 /
-├── index.html                          (the whole app — single file)
-├── assets/
-│   └── security-prompt-v1.md          (the static prompt download, inlined at build time)
-├── spec/
-│   ├── harrys-garage-spec.md           (this file)
-│   └── process-flows/                  (per-journey Mermaid + step-table docs, TBD)
-└── .github/
-    └── workflows/
-        └── deploy.yml
+â”œâ”€â”€ index.html                          (the whole app â€” single file)
+â”œâ”€â”€ assets/
+â”‚   â””â”€â”€ security-prompt-v1.md          (the static prompt download, inlined at build time)
+â”œâ”€â”€ spec/
+â”‚   â”œâ”€â”€ harrys-garage-spec.md           (this file)
+â”‚   â””â”€â”€ process-flows/                  (per-journey Mermaid + step-table docs, TBD)
+â””â”€â”€ .github/
+    â””â”€â”€ workflows/
+        â””â”€â”€ deploy.yml
 ```
 
 The security specification files (`Single-File-HTML-Tool-Blueprint.md`, `Security-Remediation-Checklist.md`, `Remediation-Process.md`) live in the parent HTML audit repository and are referenced, not duplicated.
@@ -349,9 +349,10 @@ The security specification files (`Single-File-HTML-Tool-Blueprint.md`, `Securit
 
 | Item | Status | Owner |
 |---|---|---|
-| Tile slug agreed | ❌ To confirm | Thomas |
-| Tile created | ❌ | Thomas |
-| SQLite + Files enabled | ❌ | Thomas |
-| PAT minted and stored in repo secrets | ❌ | Thomas |
-| Process flow diagrams written | ❌ — next step | Thomas + Claude Code |
+| Tile slug agreed | âŒ To confirm | Thomas |
+| Tile created | âŒ | Thomas |
+| SQLite + Files enabled | âŒ | Thomas |
+| PAT minted and stored in repo secrets | âŒ | Thomas |
+| Process flow diagrams written | âŒ â€” next step | Thomas + Claude Code |
 | Phase 2 go/no-go decision | Deferred | Thomas |
+

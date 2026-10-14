@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Harry's HTML Garage</title>
+  <script src="/apps/pages/vendor/tile.js"></script>
+  <style>
+    body { background: #1a1a1a; color: #c8c8c8; font-family: 'Courier New', Courier, monospace; display: flex; align-items: center; justify-content: center; min-height: 100vh; margin: 0; }
+    .shell { text-align: center; }
+    h1 { color: #7cfc00; font-size: 1.4rem; margin-bottom: 0.5rem; }
+    p { font-size: 0.85rem; opacity: 0.6; }
+  </style>
+</head>
+<body>
+  <div class="shell">
+    <h1>HARRY'S HTML GARAGE</h1>
+    <p>Shell tile — build in progress.</p>
+    <p id="identity"></p>
+  </div>
+  <script>
+    (async function () {
+      try {
+        var role = await tile.role();
+        document.getElementById('identity').textContent = 'SDK OK — ' + role.email;
+      } catch (e) {
+        document.getElementById('identity').textContent = 'SDK error: ' + e.message;
+      }
+    })();
+  </script>
+</body>
+</html>
