@@ -1,0 +1,1618 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>HTML Garage</title>
+<script src="/apps/pages/vendor/tile.js"></script>
+<style>
+:root{--g:#1c440c;--a:#8a6008;--r:#6c1608;--bg:#f4f2ec;--bg2:#fef9c0;--tx:#14100a;--dim:#5a4818;--f:'Courier New',Courier,monospace;}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
+html,body{min-height:100%;background:var(--bg);color:var(--tx);font-family:var(--f);font-size:14px;line-height:1.5;font-weight:bold;}
+#app{max-width:820px;margin:0 auto;padding:16px;}
+.hdr{text-align:center;border-bottom:2px solid var(--g);padding-bottom:10px;margin-bottom:20px;}
+.hdr h1{color:var(--g);font-size:1.4rem;letter-spacing:5px;}
+.hdr small{color:var(--dim);font-size:.72rem;}
+.view{display:none;}.view.active{display:block;}
+.harry{border-left:3px solid var(--g);padding:9px 13px;margin-bottom:18px;color:var(--tx);font-style:italic;background:rgba(28,68,12,.07);}
+.harry::before{content:'HARRY: ';font-style:normal;font-weight:bold;color:var(--g);}
+.card{border:1px solid #2a4c10;padding:14px;margin-bottom:10px;background:var(--bg2);}
+.ct{color:var(--g);font-size:.7rem;letter-spacing:2px;text-transform:uppercase;margin-bottom:7px;border-left:3px solid var(--g);padding-left:7px;}
+.btn{display:inline-block;padding:9px 18px;border:2px solid var(--g);background:transparent;color:var(--g);font-family:var(--f);font-size:.82rem;letter-spacing:1px;text-transform:uppercase;cursor:pointer;text-decoration:none;transition:background .1s;}
+.btn:hover{background:rgba(28,68,12,.12);}
+.btn:disabled{opacity:.4;cursor:not-allowed;}
+.btn-block{display:block;width:100%;text-align:center;margin-bottom:7px;padding:13px;}
+.btn-a{border-color:var(--a);color:var(--a);}.btn-a:hover{background:rgba(138,96,8,.12);}
+.btn-r{border-color:var(--r);color:var(--r);}.btn-r:hover{background:rgba(108,22,8,.1);}
+.btn-d{border-color:#c8b840;color:var(--dim);}.btn-d:hover{background:rgba(0,0,0,.04);}
+.row{display:flex;gap:8px;flex-wrap:wrap;}.row .btn{flex:1;text-align:center;}
+.fg{margin-bottom:14px;}
+label{display:block;color:var(--dim);font-size:.72rem;text-transform:uppercase;letter-spacing:1px;margin-bottom:4px;}
+input[type=text],input[type=email],input[type=password],select,textarea{width:100%;background:#fff;border:1px solid #2a4c10;color:var(--tx);font-family:var(--f);font-size:.88rem;padding:7px 10px;outline:none;font-weight:bold;}
+input:focus,select:focus,textarea:focus{border-color:var(--g);}
+input[readonly]{color:var(--dim);cursor:default;}
+select option{background:#fef9c0;}
+textarea{height:72px;resize:vertical;}
+.hint{color:var(--dim);font-size:.7rem;margin-top:3px;}
+.req{color:var(--r);}
+.fl{border:2px dashed #2a4c10;padding:13px;text-align:center;cursor:pointer;color:var(--dim);font-size:.82rem;transition:border-color .15s;}
+.fl:hover,.fl.ok{border-color:var(--g);color:var(--g);}
+input[type=file]{display:none;}
+.badge{display:inline-block;padding:2px 8px;font-size:.7rem;font-weight:bold;letter-spacing:1px;text-transform:uppercase;}
+.b-g{background:rgba(28,68,12,.14);color:var(--g);border:1px solid var(--g);}
+.b-a{background:rgba(138,96,8,.14);color:var(--a);border:1px solid var(--a);}
+.b-r{background:rgba(108,22,8,.14);color:var(--r);border:1px solid var(--r);}
+.b-x{background:rgba(108,22,8,.18);color:#6c1608;border:1px solid var(--r);animation:pulse 1.4s infinite;}
+.b-dim{background:rgba(90,72,24,.1);color:var(--dim);border:1px solid #c8b840;}
+@keyframes pulse{0%,100%{opacity:1;}50%{opacity:.5;}}
+.err{color:var(--r);margin-bottom:9px;font-size:.82rem;}
+.spin{color:var(--g);animation:blink 1s step-end infinite;}
+@keyframes blink{0%,100%{opacity:1;}50%{opacity:0;}}
+.tc{text-align:center;}
+.mt8{margin-top:8px;}.mt12{margin-top:12px;}.mt16{margin-top:16px;}
+.note{border:1px solid #c8b840;padding:11px;font-size:.7rem;color:var(--dim);margin-top:16px;}
+.cblabel{display:flex;gap:10px;align-items:flex-start;cursor:pointer;margin-bottom:10px;}
+.cblabel input{margin-top:2px;accent-color:var(--g);flex-shrink:0;}
+.cblabel-warn{border-left:3px solid var(--a);padding-left:10px;}
+.reg-id{font-size:1.1rem;color:var(--g);letter-spacing:3px;font-weight:bold;padding:7px 14px;border:1px solid var(--g);display:inline-block;margin:6px 0;}
+.cmmyy{font-size:.9rem;color:var(--a);letter-spacing:2px;font-weight:bold;padding:5px 12px;border:1px solid var(--a);display:inline-block;margin:4px 0 4px 8px;}
+.tbl{width:100%;border-collapse:collapse;font-size:.78rem;}
+.tbl th{color:var(--dim);text-transform:uppercase;letter-spacing:1px;padding:6px 7px;text-align:left;border-bottom:2px solid #2a4c10;font-size:.68rem;}
+.tbl td{padding:6px 7px;border-bottom:1px solid rgba(42,76,16,.2);vertical-align:middle;}
+.tbl tr:hover td{background:rgba(28,68,12,.05);}
+.tbl tr.ret td{opacity:.38;}
+.prog-filter{display:flex;gap:8px;align-items:center;margin-bottom:12px;flex-wrap:wrap;}
+.prog-filter input{flex:1;min-width:140px;}
+.prog-filter .ct-count{color:var(--dim);font-size:.72rem;white-space:nowrap;}
+.scan-row{display:flex;justify-content:space-between;align-items:center;padding:5px 0;border-bottom:1px solid rgba(42,76,16,.2);font-size:.82rem;}
+.scan-row:last-child{border-bottom:none;}
+.scan-detail{color:var(--dim);font-size:.7rem;margin-top:1px;}
+/* IMAGE FRAMES */
+.img-frame{width:100%;background:#e8e4d4;border:2px solid #2a4c10;margin-bottom:14px;position:relative;overflow:hidden;}
+.img-frame-home{aspect-ratio:16/7;}
+.img-frame-scene{aspect-ratio:16/5;}
+.img-frame img{width:100%;height:100%;object-fit:cover;display:block;}
+.img-placeholder{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:16px;text-align:center;gap:8px;}
+.img-serial{font-size:.75rem;letter-spacing:4px;color:var(--dim);font-weight:bold;border:1px solid #c8b840;padding:3px 10px;font-family:var(--f);}
+.img-desc{font-size:.65rem;line-height:1.7;color:var(--dim);font-family:var(--f);max-width:380px;font-weight:normal;}
+/* OFFICE NAVIGATION */
+.office-nav{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:4px;}
+.onav{background:var(--bg2);border:1px solid #c8b840;padding:14px 10px;text-align:left;cursor:pointer;font-family:var(--f);display:flex;flex-direction:column;gap:4px;transition:border-color .12s,background .12s;}
+.onav:hover{border-color:var(--g);background:rgba(28,68,12,.1);box-shadow:0 2px 8px rgba(28,68,12,.18);}
+.onav:disabled,.onav[disabled]{border-color:#d4c870;opacity:.38;cursor:not-allowed;}
+.onav-icon{font-size:1.1rem;color:var(--g);}
+.onav-label{font-size:.72rem;font-weight:bold;letter-spacing:2px;text-transform:uppercase;color:var(--g);}
+.onav-desc{font-size:.67rem;color:var(--dim);line-height:1.4;}
+.onav[disabled] .onav-icon,.onav[disabled] .onav-label{color:var(--r);}
+/* DOCUMENT PRINT VIEWS */
+.doc-wrap{max-width:600px;margin:0 auto;font-family:'Courier New',Courier,monospace;}
+.r001{background:#f8f4e8;color:#1a1a2a;padding:24px;border:1px solid #ccc;}
+.r001-hdr{background:#1a2050;color:#fff;padding:8px 14px;margin:-24px -24px 14px -24px;display:flex;justify-content:space-between;align-items:center;}
+.r001-badge{font-size:1rem;font-weight:bold;letter-spacing:2px;}
+.r001-ref{font-size:.72rem;opacity:.8;}
+.r001-title{text-align:center;font-size:1rem;font-weight:bold;letter-spacing:2px;border-bottom:2px solid #1a2050;border-top:2px solid #1a2050;padding:4px 0;margin-bottom:12px;}
+.r001 .sec-hdr{font-weight:bold;font-size:.78rem;border-bottom:1px solid #aac;padding-bottom:3px;margin-bottom:8px;color:#1a2050;}
+.r001 .field-row{display:flex;border-bottom:1px solid #d8d0b0;padding:4px 0;font-size:.82rem;min-height:24px;}
+.r001 .field-lbl{width:140px;color:#444;flex-shrink:0;}
+.r001 .field-val{flex:1;color:#1a1a2a;}
+.r001 .check-grid{display:grid;grid-template-columns:1fr 1fr;gap:4px;font-size:.78rem;}
+.r001 .check-item{display:flex;gap:6px;align-items:flex-start;padding:3px 0;}
+.r001-footer{margin-top:14px;border-top:2px solid #1a2050;padding-top:8px;display:flex;justify-content:space-between;font-size:.72rem;color:#666;}
+.c001{background:#e8f4e4;color:#0a1a0a;padding:24px;border:3px double #1a6030;}
+.c001-hdr{text-align:center;border-bottom:2px solid #1a6030;margin-bottom:12px;padding-bottom:8px;}
+.c001-badge{font-size:1.1rem;font-weight:bold;letter-spacing:3px;color:#1a4020;}
+.c001-sub{font-size:.8rem;color:#2a5030;letter-spacing:2px;}
+.c001-meta{display:flex;justify-content:space-between;font-size:.8rem;margin-bottom:10px;color:#2a5030;}
+.c001-body{border:1px solid #2a6030;}
+.c001-row{display:flex;justify-content:space-between;padding:5px 10px;border-bottom:1px solid #c0d8c0;font-size:.82rem;}
+.c001-row:last-child{border-bottom:none;}
+.c001-row .lbl{color:#2a5030;}
+.c001-bottom{display:flex;gap:16px;margin-top:10px;align-items:flex-start;}
+.c001-stamp{padding:10px 14px;text-align:center;font-weight:bold;font-size:.9rem;min-width:100px;}
+.c001-stamp.pass{background:#1a8020;color:#fff;}
+.c001-stamp.cond{background:#d4a010;color:#1a1408;}
+.c001-stamp.fail{background:#c04020;color:#fff;}
+.c001-cmmyy{flex:1;border:2px solid #1a6030;padding:10px;font-size:.8rem;}
+.c001-cmmyy .cm-code{font-size:1.4rem;font-weight:bold;letter-spacing:4px;color:#1a6030;font-family:'Courier New',Courier,monospace;}
+.c001-sig{border-top:2px solid #1a6030;margin-top:10px;padding-top:8px;font-size:.72rem;color:#2a5030;text-align:center;}
+.v001{background:#f4c0a8;color:#1a2844;padding:24px;border:1px solid #c09080;}
+.v001-hdr{display:flex;justify-content:space-between;align-items:flex-start;border-bottom:2px solid #1a2844;margin-bottom:10px;padding-bottom:8px;}
+.v001-title{font-size:.9rem;font-weight:bold;letter-spacing:2px;color:#1a2844;}
+.v001-sec{background:rgba(255,255,255,.3);border:1px solid #c09080;padding:8px 10px;margin-bottom:8px;}
+.v001-sec-hdr{font-size:.7rem;font-weight:bold;letter-spacing:1px;text-transform:uppercase;color:#1a2844;border-bottom:1px solid #c09080;margin-bottom:6px;padding-bottom:3px;}
+.v001 .field-row{display:flex;border-bottom:1px dashed #c09080;padding:3px 0;font-size:.8rem;min-height:22px;}
+.v001 .field-lbl{width:120px;color:#444050;flex-shrink:0;}
+.v001-cut{border:none;border-top:2px dashed #a08070;margin:12px 0;position:relative;text-align:center;}
+.v001-cut::after{content:'— CUT HERE —';position:absolute;top:-10px;left:50%;transform:translateX(-50%);background:#f4c0a8;padding:0 8px;font-size:.68rem;color:#a08070;}
+.v001-stub{background:rgba(0,0,0,.06);padding:8px 10px;font-size:.78rem;}
+@media print{body{background:#fff;color:#000;}body::before,#app>.hdr,.no-print{display:none!important;}.doc-wrap{max-width:100%;}}
+/* TOP NAV */
+.tnav{display:flex;align-items:center;justify-content:space-between;padding:6px 0 8px;margin-bottom:12px;border-bottom:1px solid #c8b840;}
+.tnav-brand{font-weight:bold;color:var(--g);font-size:.8rem;letter-spacing:3px;cursor:pointer;text-transform:uppercase;background:none;border:none;font-family:var(--f);padding:0;}
+.tnav-links{display:flex;gap:4px;}
+.tnav-link{background:none;border:none;cursor:pointer;font-family:var(--f);font-size:.7rem;color:var(--dim);font-weight:bold;padding:4px 9px;letter-spacing:1px;text-transform:uppercase;border-radius:2px;transition:color .1s,background .1s;}
+.tnav-link:hover{color:var(--g);background:rgba(28,68,12,.08);}
+/* BREADCRUMB */
+.bcrumb{font-size:.68rem;color:var(--dim);margin-bottom:14px;letter-spacing:.5px;}
+.bcrumb-link{cursor:pointer;color:var(--a);text-decoration:none;background:none;border:none;font-family:var(--f);font-size:.68rem;font-weight:bold;padding:0;}
+.bcrumb-link:hover{text-decoration:underline;}
+.bcrumb-sep{margin:0 5px;color:var(--dim);}
+.bcrumb-cur{color:var(--tx);}
+</style>
+</head>
+<body>
+<div id="app">
+<nav class="tnav no-print">
+  <button class="tnav-brand" onclick="show('office')">HTML Garage</button>
+  <div class="tnav-links">
+    <button class="tnav-link" onclick="show('j2-notice')">Certify</button>
+    <button class="tnav-link" onclick="loadBoard()">Filing Cabinet</button>
+    <button class="tnav-link" onclick="show('j1')">Security Prompts</button>
+    <button class="tnav-link" onclick="show('about')">About</button>
+  </div>
+</nav>
+<div id="breadcrumb" class="bcrumb no-print"></div>
+<header class="hdr no-print">
+  <h1>HTML GARAGE</h1>
+  <small>Harry and Tony's Motor Licencing Garage &mdash; making solutions roadworthy since 2026</small>
+</header>
+
+<!-- LOADING -->
+<div id="view-loading" class="view active tc">
+  <div class="harry">Won't be a moment — just getting the lights on.</div>
+  <div class="spin">&#9608;</div>
+</div>
+
+<!-- ERROR -->
+<div id="view-error" class="view">
+  <div class="harry">Something went a bit sideways. Have a look at the details below — it'll say what happened.</div>
+  <div class="card"><div class="ct">Error</div><div id="err-msg" style="color:var(--r);word-break:break-all;"></div></div>
+  <button class="btn" onclick="show('office')">&#8592; Office</button>
+</div>
+
+<!-- HOME / OFFICE -->
+<div id="view-office" class="view">
+  <div class="img-frame img-frame-home" data-img="IMG-01">
+    <!-- IMG-01 image — run scripts/embed-images.ps1 to embed before deploying -->
+  </div>
+  <div class="harry" id="office-quip">What do you need, Sunshine?</div>
+  <div class="office-nav" id="office-nav">
+    <button class="onav" onclick="show('j1')" onmouseover="setQuip('Here\'s the checklist — everything you need to get your tool up to standard.')">
+      <span class="onav-icon">&#x1F511;</span>
+      <span class="onav-label">Security Prompts</span>
+      <span class="onav-desc">Building a portable HTML? Use this spec to make sure it is safe</span>
+    </button>
+    <button class="onav" onclick="show('j2-notice')" onmouseover="setQuip('Bring your tool in and we\'ll run the checks together. Quick read first, then we\'re off.')">
+      <span class="onav-icon">&#x25A1;</span>
+      <span class="onav-label">Certify</span>
+      <span class="onav-desc">Check and register your solution</span>
+    </button>
+    <button class="onav" onclick="loadBoard()" onmouseover="setQuip('Everything we\'ve certified — have a look and see how your tools are doing.')">
+      <span class="onav-icon">&#x2261;</span>
+      <span class="onav-label">The Filing Cabinet</span>
+      <span class="onav-desc">All registered tools and their certification status</span>
+    </button>
+    <button class="onav" onclick="startV5C()" onmouseover="setQuip('Changing hands? Fill in the transfer and we\'ll update the record.')">
+      <span class="onav-icon">&#x21C4;</span>
+      <span class="onav-label">Change of Ownership</span>
+      <span class="onav-desc">Tell us if you are no longer the registered owner of the solution</span>
+    </button>
+    <button class="onav" onclick="startRetire()" onmouseover="setQuip('Taking it off the road? Let us know and we\'ll close the record.')">
+      <span class="onav-icon">&#x2713;</span>
+      <span class="onav-label">Retire</span>
+      <span class="onav-desc">Let us know if your solution is no longer on the road</span>
+    </button>
+    <button class="onav" onclick="show('about')" onmouseover="setQuip('What we do, what we don\'t do, and why it matters. Worth a read.')">
+      <span class="onav-icon">&#x2139;</span>
+      <span class="onav-label">About / Help</span>
+      <span class="onav-desc">What this service is and what it isn't</span>
+    </button>
+  </div>
+</div>
+
+<!-- ABOUT -->
+<div id="view-about" class="view">
+  <div class="img-frame img-frame-scene" data-img="IMG-09">
+    <!-- IMG-09 image — run scripts/embed-images.ps1 to embed before deploying -->
+  </div>
+  <div class="harry">Everything you need to know about what we do and what we don't. Worth five minutes of your time.</div>
+  <div class="card">
+    <div class="ct">About HTML Garage</div>
+    <p style="font-size:.82rem;margin-bottom:10px;">HTML Garage is a programme-agnostic HTML tool security certification service. Any Accenture team that produces standalone HTML tools may use it.</p>
+    <p style="font-size:.82rem;margin-bottom:10px;">Certification confirms the tool has completed a baseline security hardening checklist (C1–C8). It is not a full InfoSec audit or penetration test. <strong>The primary danger is not the roadworthiness of the vehicle. It is how it is driven.</strong></p>
+    <p style="font-size:.82rem;margin-bottom:10px;">All registered tools are visible to all users within this tile. Tools must be re-certified every 90 days. The CMMYY suffix on the filename (e.g. <span style="color:var(--a)">_C0127</span>) tells you when certification lapses.</p>
+    <p style="font-size:.82rem;">Created by Tom Hensby and Davin Libert Lewis</p>
+  </div>
+  <button class="btn btn-d mt12" onclick="show('office')">&#8592; Back</button>
+</div>
+
+<!-- JOURNEY 1: DOWNLOAD PROMPT -->
+<div id="view-j1" class="view">
+  <div class="img-frame img-frame-scene" data-img="IMG-08">
+    <!-- IMG-08 image — run scripts/embed-images.ps1 to embed before deploying -->
+  </div>
+  <div class="harry">Here's your checklist — take it to Claude, work through it, and come back when you've got the remediated file. You'll be fine.</div>
+  <div class="card">
+    <div class="ct">Security Prompt &mdash; General (v2)</div>
+    <p style="font-size:.8rem;margin-bottom:10px;">Download the standard HTML security remediation prompt. Take it to Claude Code or claude.ai along with your HTML file. Follow the checklist, then return to use Journey 2 or 3 to certify.</p>
+    <button class="btn btn-block" onclick="downloadGeneral()">&#11015; Download security prompt (.md)</button>
+  </div>
+  <button class="btn btn-d mt12" onclick="show('office')">&#8592; Back to office</button>
+</div>
+
+<!-- JOURNEY 2: PRE-READ NOTICE -->
+<div id="view-j2-notice" class="view">
+  <div class="img-frame img-frame-scene" data-img="IMG-02">
+    <!-- IMG-02 image — run scripts/embed-images.ps1 to embed before deploying -->
+  </div>
+  <div class="harry">Quick read before we get started — just so you know what we check and what it means. Shouldn't take long.</div>
+  <div class="card">
+    <div class="ct">What this certification is &mdash; and what it isn't</div>
+    <p style="font-size:.82rem;margin-bottom:10px;">This process applies a standardised baseline security check to your HTML tool. It confirms the tool meets a defined set of mechanical requirements before it runs on Accenture or client systems.</p>
+    <p style="font-size:.82rem;margin-bottom:10px;"><strong>It is not a full security audit or penetration test.</strong> Certification does not mean the tool is safe to handle sensitive data. It means the known checklist items have been addressed. The primary risk is not the tool. It is what data you run through it and where.</p>
+    <p style="font-size:.82rem;margin-bottom:10px;">The following checks are applied (C1–C9):</p>
+    <ul style="font-size:.78rem;line-height:1.9;padding-left:14px;color:var(--dim);margin-bottom:10px;">
+      <li><strong style="color:var(--tx)">C1</strong> — No external scripts, stylesheets or fonts loaded from remote URLs</li>
+      <li><strong style="color:var(--tx)">C2</strong> — Content Security Policy meta tag present</li>
+      <li><strong style="color:var(--tx)">C3</strong> — DOM output sanitised (no unescaped innerHTML)</li>
+      <li><strong style="color:var(--tx)">C4</strong> — No dynamic code execution (eval, new Function)</li>
+      <li><strong style="color:var(--tx)">C5</strong> — Input validation present where required</li>
+      <li><strong style="color:var(--tx)">C6</strong> — CSV export formula injection guard (where applicable)</li>
+      <li><strong style="color:var(--tx)">C7</strong> — No undeclared use of localStorage / sessionStorage / cookies</li>
+      <li><strong style="color:var(--tx)">C8</strong> — Accenture Security Review audit comment block present in source</li>
+      <li><strong style="color:var(--tx)">C9</strong> — Certification footer with countdown timer present in source</li>
+    </ul>
+    <p style="font-size:.82rem;margin-bottom:10px;">The certified file will contain a discreet status footer showing the certification expiry date. This footer links to the certification record on Accenture's internal registry for audit purposes.</p>
+    <p style="font-size:.82rem;color:var(--a);"><strong>Important:</strong> You will be asked to declare whether this tool is intended to ingest or process client data. If it is, additional care applies to C3 and C5.</p>
+  </div>
+  <div class="card mt8">
+    <div class="ct">Solution scope</div>
+    <p style="font-size:.78rem;margin-bottom:12px;color:var(--dim);">Please confirm the intended use of this solution before proceeding.</p>
+    <div class="fg">
+      <label>Will this solution be migrated to client systems? <span class="req">*</span></label>
+      <div style="display:flex;gap:16px;margin-top:6px;">
+        <label class="cblabel" style="margin-bottom:0;"><input type="radio" name="scope-client-sys" id="scope-client-sys-y" value="Y" style="accent-color:var(--g);"> <span>Yes</span></label>
+        <label class="cblabel" style="margin-bottom:0;"><input type="radio" name="scope-client-sys" id="scope-client-sys-n" value="N" style="accent-color:var(--g);"> <span>No</span></label>
+      </div>
+    </div>
+    <div class="fg" style="margin-bottom:0;">
+      <label>Will this solution be used to process client data? <span class="req">*</span></label>
+      <div style="display:flex;gap:16px;margin-top:6px;">
+        <label class="cblabel" style="margin-bottom:0;"><input type="radio" name="scope-client-data" id="scope-client-data-y" value="Y" style="accent-color:var(--g);"> <span>Yes</span></label>
+        <label class="cblabel" style="margin-bottom:0;"><input type="radio" name="scope-client-data" id="scope-client-data-n" value="N" style="accent-color:var(--g);"> <span>No</span></label>
+      </div>
+    </div>
+  </div>
+  <div class="card mt8">
+    <div class="ct">Personal declaration</div>
+    <div class="fg" style="margin-bottom:0;">
+      <label class="cblabel cblabel-warn"><input type="checkbox" id="scope-decl" style="accent-color:var(--g);"><span>I affirm that I have completed all relevant data protection training and, where client data or systems are involved, I am abiding by the relevant contractual and data protection agreements.</span></label>
+    </div>
+  </div>
+  <div id="scope-err" class="err" style="display:none;margin-top:8px;"></div>
+  <div class="row mt12">
+    <button class="btn btn-d" onclick="show('office')">&#8592; Back</button>
+    <button class="btn" onclick="proceedFromNotice()">I understand &mdash; proceed &#8594;</button>
+  </div>
+</div>
+
+<!-- JOURNEY 2: INTAKE (HIRE FORM) -->
+<div id="view-j2-intake" class="view">
+  <div class="img-frame img-frame-scene" data-img="IMG-03">
+    <!-- IMG-03 image — run scripts/embed-images.ps1 to embed before deploying -->
+  </div>
+  <div class="harry">Let's get your tool registered. Fill in the details below and we'll run the first scan for you.</div>
+  <div class="card" style="margin-bottom:14px;">
+    <div class="ct">New or recertification?</div>
+    <div style="display:flex;gap:20px;margin-bottom:12px;">
+      <label class="cblabel" style="margin-bottom:0;"><input type="radio" name="cert-type" id="cert-type-new" value="new" checked onchange="onCertTypeChange()" style="accent-color:var(--g);"> <span><strong>New solution</strong> — first time through</span></label>
+      <label class="cblabel" style="margin-bottom:0;"><input type="radio" name="cert-type" id="cert-type-recert" value="recert" onchange="onCertTypeChange()" style="accent-color:var(--g);"> <span><strong>Recertification</strong> — renewing an existing registration</span></label>
+    </div>
+    <div id="recert-selector" style="display:none;">
+      <label>Select existing solution <span class="req">*</span></label>
+      <select id="j2-recert-select" onchange="onRecertSelect()">
+        <option value="">— Loading registered solutions… —</option>
+      </select>
+      <div class="hint">Select to pre-fill registration details from the existing record.</div>
+    </div>
+  </div>
+  <div class="fg">
+    <label>Solution name <span class="req">*</span></label>
+    <input type="text" id="j2-name" placeholder="e.g. FTE Dashboard">
+    <div class="hint" id="j2-name-hint"></div>
+  </div>
+  <div class="fg"><label>Programme <span class="req">*</span></label><input type="text" id="j2-prog" placeholder="e.g. SSB, UU, internal tool..."></div>
+  <div class="fg"><label>Solution owner email <span class="req">*</span> <span style="color:var(--dim);font-weight:normal;">&mdash; who is responsible for this tool</span></label><input type="email" id="j2-owner-email" placeholder="owner@accenture.com"></div>
+  <div class="fg"><label>Your email (certifier) <span class="req">*</span></label><input type="email" id="j2-certifier-email" readonly><div class="hint">Auto-filled from your account</div></div>
+  <div class="fg"><label>Brief description</label><textarea id="j2-desc" placeholder="What does this tool do? Who uses it?"></textarea></div>
+  <div class="fg">
+    <label>Source HTML file <span class="req">*</span></label>
+    <label class="fl" id="j2-html-lbl" for="j2-html">Click to select source .html file</label>
+    <input type="file" id="j2-html" accept=".html" onchange="onJ2HtmlFile(this)">
+  </div>
+  <div id="j2-scope-summary" class="note" style="margin-bottom:14px;"></div>
+  <div id="j2-err" class="err" style="display:none;"></div>
+  <div class="row">
+    <button class="btn btn-d" onclick="show('j2-notice')">&#8592; Back</button>
+    <button class="btn" onclick="submitJ2Intake()">Run pre-scan &#8594;</button>
+  </div>
+</div>
+
+<!-- JOURNEY 2: PRE-SCAN RESULTS -->
+<div id="view-j2-scan" class="view">
+  <div class="img-frame img-frame-scene" data-img="IMG-04">
+    <!-- IMG-04 image — run scripts/embed-images.ps1 to embed before deploying -->
+  </div>
+  <div class="harry" id="j2-scan-voice">Right, let's see what we're working with.</div>
+  <div class="card">
+    <div class="ct">Pre-scan results &mdash; C1 to C9</div>
+    <div id="j2-scan-results"></div>
+  </div>
+  <div class="card mt8" style="display:flex;justify-content:space-between;align-items:center;">
+    <div><div class="ct" style="margin-bottom:4px;">Pre-remediation risk rating</div><div id="j2-pre-risk-badge"></div></div>
+    <div style="color:var(--dim);font-size:.72rem;max-width:320px;">Based on automated scan results. This rating will be compared against the post-remediation scan before certification.</div>
+  </div>
+  <div class="card mt8">
+    <div class="ct">What to do next</div>
+    <ol style="padding-left:16px;font-size:.82rem;line-height:2.1;">
+      <li>Download the personalised spec below</li>
+      <li>Open Claude Code or claude.ai on your machine</li>
+      <li>Upload the spec <strong>and</strong> your source HTML together</li>
+      <li>Follow the checklist — Claude remediates and adds the security footer (C8 &amp; C9)</li>
+      <li>Save the two outputs: remediated .html (with <span style="color:var(--a)" id="j2-filename-hint">_CMMYY</span> suffix) and .md report</li>
+      <li>Return here and click "I've got the results"</li>
+    </ol>
+  </div>
+  <button class="btn btn-block mt8" onclick="downloadSpec()">&#11015; Download personalised spec (.md)</button>
+  <button class="btn btn-block mt8" onclick="show('j2-upload')">I've got the results &mdash; upload &#8594;</button>
+  <button class="btn btn-d mt8" onclick="show('j2-intake')">&#8592; Back</button>
+</div>
+
+<!-- JOURNEY 2: UPLOAD -->
+<div id="view-j2-upload" class="view">
+  <div class="img-frame img-frame-scene" data-img="IMG-05">
+    <!-- IMG-05 image — run scripts/embed-images.ps1 to embed before deploying -->
+  </div>
+  <div class="harry">Good work getting this far — upload the remediated version and we'll run the checks.</div>
+  <div class="fg">
+    <label>Remediated HTML file <span class="req">*</span></label>
+    <div class="hint" style="margin-bottom:6px;">Filename should end with <span style="color:var(--a)" id="up-cmmyy-hint">_CMMYY</span>.html</div>
+    <label class="fl" id="up-html-lbl" for="up-html">Click to select remediated .html file</label>
+    <input type="file" id="up-html" accept=".html" onchange="onFile(this,'up-html-lbl')">
+  </div>
+  <div class="fg">
+    <label>Remediation report (.md) <span class="req">*</span></label>
+    <label class="fl" id="up-md-lbl" for="up-md">Click to select .md report</label>
+    <input type="file" id="up-md" accept=".md,.markdown" onchange="onFile(this,'up-md-lbl')">
+  </div>
+  <div id="up-err" class="err" style="display:none;"></div>
+  <div class="row">
+    <button class="btn btn-d" onclick="show('j2-scan')">&#8592; Back</button>
+    <button class="btn" id="btn-up" onclick="runPostScan()">Run post-scan &#8594;</button>
+  </div>
+</div>
+
+<!-- JOURNEY 2: POST-SCAN COMPARISON -->
+<div id="view-j2-post-scan" class="view">
+  <div class="img-frame img-frame-scene" data-img="IMG-06">
+    <!-- IMG-06 image — run scripts/embed-images.ps1 to embed before deploying -->
+  </div>
+  <div class="harry">Here's how the before and after compare. If everything's looking better, we'll get it certified.</div>
+  <div class="card">
+    <div class="ct">Before &amp; after &mdash; C1 to C9</div>
+    <table class="tbl">
+      <thead><tr><th>Check</th><th style="text-align:center;">Before</th><th style="text-align:center;">After</th></tr></thead>
+      <tbody id="j2-postscan-table"></tbody>
+    </table>
+  </div>
+  <div class="card mt8" style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:12px;">
+    <div><div class="ct" style="margin-bottom:4px;">Pre-remediation</div><span id="j2-ps-pre-badge"></span></div>
+    <div style="font-size:1.6rem;color:var(--dim);">&#8594;</div>
+    <div><div class="ct" style="margin-bottom:4px;">Post-remediation</div><span id="j2-ps-post-badge"></span></div>
+  </div>
+  <div id="j2-ps-warn" style="display:none;" class="card mt8" style="border-color:var(--r);">
+    <div class="ct" style="color:var(--r);">Issues remain</div>
+    <div id="j2-ps-warn-text" style="font-size:.82rem;color:var(--r);"></div>
+  </div>
+  <div id="j2-ps-err" class="err" style="display:none;"></div>
+  <div class="row mt12">
+    <button class="btn btn-d" onclick="show('j2-upload')">&#8592; Back</button>
+    <button class="btn" id="btn-certify" onclick="confirmCertify()">Certify &amp; register &#8594;</button>
+  </div>
+</div>
+
+
+<!-- CERT COMPLETE -->
+<div id="view-cert-done" class="view">
+  <div class="img-frame img-frame-scene" data-img="IMG-07">
+    <!-- IMG-07 image — run scripts/embed-images.ps1 to embed before deploying -->
+  </div>
+  <div class="harry" id="cert-done-voice">There you go. All done — don't forget to rename the file. See you in 90 days.</div>
+  <div class="card mt12">
+    <div class="ct">Certified</div>
+    <div><span class="reg-id" id="cd-serial"></span><span class="cmmyy" id="cd-cmmyy"></span></div>
+    <div style="text-align:left;font-size:.82rem;margin-top:8px;">
+      <div><span style="color:var(--dim)">Solution: </span><span id="cd-name"></span></div>
+      <div><span style="color:var(--dim)">Programme: </span><span id="cd-prog"></span></div>
+      <div><span style="color:var(--dim)">Owner: </span><span id="cd-owner"></span></div>
+      <div><span style="color:var(--dim)">Certified by: </span><span id="cd-certifier"></span></div>
+      <div><span style="color:var(--dim)">Certified: </span><span id="cd-date"></span></div>
+      <div><span style="color:var(--dim)">Next due: </span><span id="cd-due" style="color:var(--a)"></span></div>
+      <div style="margin-top:6px;"><span style="color:var(--dim)">Risk rating: </span><span id="cd-risk-badge"></span></div>
+    </div>
+    <div class="card mt8" style="background:#0a150a;border-color:#1a4020;">
+      <div class="ct">Rename your file</div>
+      <div style="font-size:.8rem;">Append the CMMYY code to the filename before distributing:</div>
+      <div style="color:var(--a);font-family:'Courier New',monospace;font-size:.82rem;margin-top:6px;" id="cd-rename"></div>
+    </div>
+  </div>
+  <button class="btn mt12" onclick="printCert()">&#9112; Print certificate (HMW-C001)</button>
+  <div style="margin-top:6px;">
+    <a class="btn btn-d" id="cd-dl-html" style="display:none;" href="#" download="">&#11015; Download certified HTML (with security footer)</a>
+  </div>
+  <button class="btn btn-d mt12" onclick="show('office')">&#8592; Office</button>
+</div>
+
+<!-- V5C: CHANGE OF OWNERSHIP -->
+<div id="view-v5c" class="view">
+  <div class="img-frame img-frame-scene" data-img="IMG-11">
+    <!-- IMG-11 image — run scripts/embed-images.ps1 to embed before deploying -->
+  </div>
+  <div class="harry">Changing hands, is it? Fill in the transfer details below and we'll update the record.</div>
+  <div class="fg"><label>Select solution to transfer <span class="req">*</span></label><select id="v5c-sel" onchange="onV5CSel()"></select></div>
+  <div id="v5c-current" class="card" style="display:none;font-size:.8rem;">
+    <div class="ct">Current registered keeper</div>
+    <div id="v5c-cur-detail"></div>
+  </div>
+  <div class="fg"><label>New owner email <span class="req">*</span></label><input type="email" id="v5c-new-email" placeholder="newowner@accenture.com"></div>
+  <div class="fg"><label>New programme (only if changing)</label><input type="text" id="v5c-new-prog" placeholder="Leave blank to keep current"></div>
+  <div class="fg">
+    <label>Reason for transfer <span class="req">*</span></label>
+    <select id="v5c-reason">
+      <option value="">-- Select reason --</option>
+      <option value="Staff movement">Staff movement</option>
+      <option value="Programme change">Programme change</option>
+      <option value="Other">Other</option>
+    </select>
+  </div>
+  <div class="fg"><label>Your name (previous keeper declaration) <span class="req">*</span></label><input type="text" id="v5c-from-name"></div>
+  <div class="fg"><label>Access code <span class="req">*</span></label><input type="password" id="v5c-code"></div>
+  <div id="v5c-err" class="err" style="display:none;"></div>
+  <div class="row">
+    <button class="btn btn-d" onclick="show('board')">&#8592; Back</button>
+    <button class="btn" id="btn-v5c" onclick="submitV5C()">Transfer ownership &#8594;</button>
+  </div>
+</div>
+
+<!-- V5C COMPLETE -->
+<div id="view-v5c-done" class="view tc">
+  <div class="harry">All done — new keeper's on the record. Look after it.</div>
+  <div class="card mt12" style="font-size:.82rem;text-align:left;">
+    <div><span style="color:var(--dim)">Solution: </span><span id="v5c-done-name"></span></div>
+    <div><span style="color:var(--dim)">New owner: </span><span id="v5c-done-owner"></span></div>
+    <div><span style="color:var(--dim)">Date: </span><span id="v5c-done-date"></span></div>
+  </div>
+  <button class="btn mt12" onclick="printV5C()">&#9112; Print V5C (HMW-V001)</button>
+  <button class="btn btn-d mt12" onclick="loadBoard()">&#8592; The Filing Cabinet</button>
+</div>
+
+<!-- RETIRE -->
+<div id="view-retire" class="view">
+  <div class="img-frame img-frame-scene" data-img="IMG-12">
+    <!-- IMG-12 image — run scripts/embed-images.ps1 to embed before deploying -->
+  </div>
+  <div class="harry">Taking this one off the road? No problem — fill in the details and we'll close the record out.</div>
+  <div class="fg"><label>Select solution to retire <span class="req">*</span></label><select id="ret-sel" onchange="onRetireSel()"></select></div>
+  <div id="ret-info" class="card" style="display:none;font-size:.8rem;"><div class="ct">Solution</div><div id="ret-detail"></div></div>
+  <div class="fg"><label>Reason <span class="req">*</span></label><textarea id="ret-reason" placeholder="e.g. Project ended, replaced by v2..."></textarea></div>
+  <div class="fg"><label>Your name <span class="req">*</span></label><input type="text" id="ret-name"></div>
+  <div class="fg"><label>Your email <span class="req">*</span></label><input type="email" id="ret-email"></div>
+  <div class="fg"><label class="cblabel"><input type="checkbox" id="ret-decl"><span>I confirm this solution is no longer deployed and will not be redeployed without a new certification.</span></label></div>
+  <div class="fg"><label>Access code <span class="req">*</span></label><input type="password" id="ret-code"></div>
+  <div id="ret-err" class="err" style="display:none;"></div>
+  <div class="row">
+    <button class="btn btn-d" onclick="show('office')">&#8592; Back</button>
+    <button class="btn btn-r" id="btn-ret" onclick="submitRetire()">Retire solution</button>
+  </div>
+</div>
+
+<!-- RETIRE DONE -->
+<div id="view-retire-done" class="view tc">
+  <div class="harry">All done — record's closed. If it ever comes back into service, you know where to find us.</div>
+  <div class="card mt12" style="font-size:.82rem;text-align:left;">
+    <div><span style="color:var(--dim)">Solution: </span><span id="rd-name"></span></div>
+    <div><span style="color:var(--dim)">Retired: </span><span id="rd-date"></span></div>
+  </div>
+  <button class="btn mt12" onclick="show('office')">&#8592; Office</button>
+</div>
+
+<!-- THE FILING CABINET -->
+<div id="view-board" class="view">
+  <div class="img-frame img-frame-scene" data-img="IMG-10">
+    <!-- IMG-10 image — run scripts/embed-images.ps1 to embed before deploying -->
+  </div>
+  <div class="harry">Here's every tool we've certified. If yours is coming up for renewal, now's a good time to book it in.</div>
+  <div class="prog-filter no-print">
+    <input type="text" id="prog-filter" placeholder="Filter by programme..." oninput="filterBoard()" style="max-width:220px;">
+    <span class="ct-count" id="board-count"></span>
+    <button class="btn btn-d" style="padding:6px 12px;font-size:.72rem;" id="btn-ret-toggle" onclick="toggleRetired()">Show retired</button>
+    <button class="btn btn-d" style="padding:6px 12px;font-size:.72rem;" onclick="exportCSV()">&#11015; CSV</button>
+    <button class="btn btn-d" style="padding:6px 12px;font-size:.72rem;" onclick="show('office')">&#8592; Home</button>
+  </div>
+  <div id="board-warn" style="display:none;color:var(--r);font-size:.78rem;margin-bottom:8px;">HARRY: &ldquo;Worth having a look at those overdue ones — the sooner they go through, the better.&rdquo;</div>
+  <div id="board-body"><div class="spin">Loading&#8230;</div></div>
+</div>
+
+<!-- CERT DOCUMENT HMW-C001 -->
+<div id="view-cert-doc" class="view">
+  <div class="no-print row" style="margin-bottom:14px;">
+    <button class="btn btn-d" onclick="backFromDoc('cert')">&#8592; Back</button>
+    <button class="btn" onclick="window.print()">&#9112; Print / Save PDF</button>
+  </div>
+  <div class="doc-wrap"><div class="c001" id="c001-body"></div></div>
+</div>
+
+<!-- V5C DOCUMENT HMW-V001 -->
+<div id="view-v5c-doc" class="view">
+  <div class="no-print row" style="margin-bottom:14px;">
+    <button class="btn btn-d" onclick="show('v5c-done')">&#8592; Back</button>
+    <button class="btn" onclick="window.print()">&#9112; Print / Save PDF</button>
+  </div>
+  <div class="doc-wrap"><div class="v001" id="v001-body"></div></div>
+</div>
+
+<!-- GARAGE LOCKED (Phase 2) -->
+<div id="view-garage-locked" class="view tc">
+  <div class="harry">This part's not open yet — we're still getting it ready. Check back soon.</div>
+  <div class="card mt12"><div class="ct">Phase 2 &mdash; In-app AI remediation</div><div style="font-size:.8rem;color:var(--dim);">Automated in-app remediation via Tile AI is planned for Phase 2. An <code>ai_access</code> request must be raised with the Tile team before this phase can begin.</div></div>
+  <button class="btn btn-d mt12" onclick="show('office')">&#8592; Office</button>
+</div>
+
+</div><!-- #app -->
+<script>
+var PASSCODE='HARRYS2026';
+var REGISTRY_URL='https://tile.accenture.com/view/html-garage/';
+var S={role:null,j2:{},lastReg:null,lastV5C:null,boardRows:[],showRetired:false,certFrom:'done'};
+var boardData={};
+
+/* ── NAV ── */
+var BREADCRUMBS={
+  'office':[],
+  'about':['About / Help'],
+  'j1':['Security Prompts'],
+  'j2-notice':['Certify'],
+  'j2-intake':[['Certify','j2-notice'],'Registration'],
+  'j2-scan':[['Certify','j2-notice'],'Pre-scan Results'],
+  'j2-upload':[['Certify','j2-notice'],'Upload Remediated File'],
+  'j2-post-scan':[['Certify','j2-notice'],'Review Results'],
+  'cert-done':[['Certify','j2-notice'],'Certification Complete'],
+  'cert-doc':['Certificate'],
+  'board':['The Filing Cabinet'],
+  'v5c':[['The Filing Cabinet','board'],'Change of Ownership'],
+  'v5c-done':[['The Filing Cabinet','board'],'Transfer Complete'],
+  'v5c-doc':['V5C Document'],
+  'retire':[['The Filing Cabinet','board'],'Retire Solution'],
+  'retire-done':[['The Filing Cabinet','board'],'Retired'],
+  'error':['Error']
+};
+function show(id){
+  document.querySelectorAll('.view').forEach(function(v){v.classList.remove('active');});
+  var el=document.getElementById('view-'+id);
+  if(el)el.classList.add('active');
+  var bc=document.getElementById('breadcrumb');
+  if(bc){
+    var crumbs=BREADCRUMBS[id]||[['Home','office'],id];
+    if(!crumbs.length){bc.innerHTML='';return window.scrollTo(0,0);}
+    var parts=['<button class="bcrumb-link" onclick="show(\'office\')">Home</button>'];
+    crumbs.forEach(function(c){
+      if(Array.isArray(c)){parts.push('<span class="bcrumb-sep">›</span><button class="bcrumb-link" onclick="show(\''+c[1]+'\')">'+c[0]+'</button>');}
+      else{parts.push('<span class="bcrumb-sep">›</span><span class="bcrumb-cur">'+c+'</span>');}
+    });
+    bc.innerHTML=parts.join('');
+  }
+  window.scrollTo(0,0);
+}
+function showErr(e){document.getElementById('err-msg').textContent=(e&&e.message)?e.message:String(e);show('error');}
+
+/* ── HARRY VOICE ── */
+function setQuip(msg){var el=document.getElementById('office-quip');if(el)el.textContent=msg;}
+
+/* ── NOTICE SCREEN ── */
+function proceedFromNotice(){
+  var sysY=document.getElementById('scope-client-sys-y').checked;
+  var sysN=document.getElementById('scope-client-sys-n').checked;
+  var datY=document.getElementById('scope-client-data-y').checked;
+  var datN=document.getElementById('scope-client-data-n').checked;
+  var decl=document.getElementById('scope-decl').checked;
+  var err=document.getElementById('scope-err');err.style.display='none';
+  if(!sysY&&!sysN){err.textContent='Please answer: will this solution be migrated to client systems?';err.style.display='';return;}
+  if(!datY&&!datN){err.textContent='Please answer: will this solution be used to process client data?';err.style.display='';return;}
+  if(!decl){err.textContent='Please confirm the personal declaration before proceeding.';err.style.display='';return;}
+  S.j2.deploysToClient=sysY?1:0;
+  S.j2.clientData=datY;
+  var scopeEl=document.getElementById('j2-scope-summary');
+  if(scopeEl)scopeEl.innerHTML='<strong>Scope confirmed:</strong> Client systems: '+(sysY?'Yes':'No')+' &nbsp;|&nbsp; Client data: '+(datY?'Yes':'No');
+  // Reset cert-type to new by default each time we enter intake
+  var newRad=document.getElementById('cert-type-new');if(newRad)newRad.checked=true;
+  onCertTypeChange();
+  show('j2-intake');
+}
+
+/* ── CERTIFY TYPE / RECERTIFICATION ── */
+function onCertTypeChange(){
+  var isRecert=document.getElementById('cert-type-recert').checked;
+  var sel=document.getElementById('recert-selector');
+  if(sel)sel.style.display=isRecert?'':'none';
+  if(isRecert)loadRecertOptions();
+  S.j2.isRecert=isRecert;
+  S.j2.prevId=null;
+}
+async function loadRecertOptions(){
+  var sel=document.getElementById('j2-recert-select');
+  if(!sel)return;
+  try{
+    var res=await tile.sqlite.execute("SELECT id,solution_name,programme,cmmyy_code FROM registrations WHERE status='active' ORDER BY solution_name");
+    if(!res.rows.length){sel.innerHTML='<option value="">— No active registrations found —</option>';return;}
+    sel.innerHTML='<option value="">— Select a solution —</option>'+res.rows.map(function(r){
+      return '<option value="'+r.id+'">'+esc(r.solution_name)+' ('+esc(r.programme||'?')+') — '+esc(r.cmmyy_code||'')+'</option>';
+    }).join('');
+  }catch(e){sel.innerHTML='<option value="">— Error loading solutions —</option>';}
+}
+async function onRecertSelect(){
+  var sel=document.getElementById('j2-recert-select');
+  var id=sel?sel.value:'';
+  if(!id)return;
+  try{
+    var res=await tile.sqlite.execute("SELECT * FROM registrations WHERE id=?",[id]);
+    if(!res.rows.length)return;
+    var r=res.rows[0];
+    document.getElementById('j2-name').value=r.solution_name||'';
+    document.getElementById('j2-prog').value=r.programme||'';
+    document.getElementById('j2-owner-email').value=r.owner_email||'';
+    var descEl=document.getElementById('j2-desc');if(descEl)descEl.value=r.solution_description||'';
+    S.j2.isRecert=true;S.j2.prevId=id;
+  }catch(e){console.warn('Recert prefill error:',e.message);}
+}
+
+/* ── INIT ── */
+async function init(attempt){
+  attempt=attempt||0;
+  try{
+    S.role=await tile.role();
+    if(S.role.email){
+      ['j2-certifier-email'].forEach(function(id){
+        var el=document.getElementById(id);
+        if(el){el.value=S.role.email;}
+      });
+      var retEl=document.getElementById('ret-email');
+      if(retEl)retEl.value=S.role.email;
+    }
+    if(S.role.canWriteSqlite)await ensureSchema();
+    show('office');
+  }catch(e){
+    if(attempt<4&&e&&String(e.message||e).toLowerCase().indexOf('unavailable')>=0){
+      await new Promise(function(r){setTimeout(r,2000);});
+      return init(attempt+1);
+    }
+    showErr(e);
+  }
+}
+
+/* ── SCHEMA ── */
+async function ensureSchema(){
+  var r=await tile.sqlite.execute("SELECT name FROM sqlite_master WHERE type='table' AND name='registrations'");
+  if(r.rows.length===0){
+    await tile.sqlite.batch(['BEGIN',
+      "CREATE TABLE registrations(id TEXT PRIMARY KEY,solution_name TEXT NOT NULL,solution_description TEXT DEFAULT '',owner_email TEXT NOT NULL,certifier_email TEXT NOT NULL DEFAULT '',programme TEXT NOT NULL DEFAULT 'Unknown',risk_rating TEXT NOT NULL DEFAULT 'LOW',registered_at TEXT NOT NULL,next_due_at TEXT NOT NULL,cmmyy_code TEXT,cert_serial TEXT,tool_file_key TEXT NOT NULL,report_file_key TEXT NOT NULL,status TEXT NOT NULL DEFAULT 'active',journey_type TEXT DEFAULT 'remediation',ingests_client_data INTEGER DEFAULT 0,deploys_to_client INTEGER DEFAULT 0,is_recertification INTEGER DEFAULT 0,previous_id TEXT,retired_at TEXT,retirement_reason TEXT,retirement_declared_by TEXT)",
+    'COMMIT']);
+  }else{
+    await migrateSchema();
+  }
+  var t=await tile.sqlite.execute("SELECT name FROM sqlite_master WHERE type='table' AND name='transfer_history'");
+  if(t.rows.length===0){
+    await tile.sqlite.execute("CREATE TABLE transfer_history(id TEXT PRIMARY KEY,registration_id TEXT NOT NULL,from_owner_email TEXT,to_owner_email TEXT NOT NULL,from_programme TEXT,to_programme TEXT,reason TEXT,transfer_date TEXT NOT NULL)");
+  }
+}
+async function migrateSchema(){
+  try{
+    var pi=await tile.sqlite.execute("PRAGMA table_info(registrations)");
+    var cols=pi.rows.map(function(r){return r.name;});
+    var adds=[];
+    if(!cols.includes('programme'))adds.push("ALTER TABLE registrations ADD COLUMN programme TEXT NOT NULL DEFAULT 'Unknown'");
+    if(!cols.includes('cmmyy_code'))adds.push("ALTER TABLE registrations ADD COLUMN cmmyy_code TEXT");
+    if(!cols.includes('cert_serial'))adds.push("ALTER TABLE registrations ADD COLUMN cert_serial TEXT");
+    if(!cols.includes('journey_type'))adds.push("ALTER TABLE registrations ADD COLUMN journey_type TEXT DEFAULT 'remediation'");
+    if(!cols.includes('certifier_email'))adds.push("ALTER TABLE registrations ADD COLUMN certifier_email TEXT NOT NULL DEFAULT ''");
+    if(!cols.includes('ingests_client_data'))adds.push("ALTER TABLE registrations ADD COLUMN ingests_client_data INTEGER DEFAULT 0");
+    if(!cols.includes('deploys_to_client'))adds.push("ALTER TABLE registrations ADD COLUMN deploys_to_client INTEGER DEFAULT 0");
+    // v1 compat: owner_email may have been certifier_email; owner_name is superseded
+    if(cols.includes('owner_name')&&!cols.includes('owner_email'))adds.push("ALTER TABLE registrations ADD COLUMN owner_email TEXT NOT NULL DEFAULT ''");
+    if(adds.length){
+      var batch=['BEGIN'].concat(adds).concat(['COMMIT']);
+      await tile.sqlite.batch(batch);
+      if(cols.includes('certifier_email')===false&&cols.includes('owner_email')){
+        await tile.sqlite.execute("UPDATE registrations SET certifier_email=owner_email WHERE certifier_email=''");
+      }
+    }
+    // Remove legacy builder_name column by rebuilding the table
+    if(cols.includes('builder_name')){
+      await tile.sqlite.batch([
+        'BEGIN',
+        "CREATE TABLE registrations_new(id TEXT PRIMARY KEY,solution_name TEXT NOT NULL,solution_description TEXT DEFAULT '',owner_email TEXT NOT NULL,certifier_email TEXT NOT NULL DEFAULT '',programme TEXT NOT NULL DEFAULT 'Unknown',risk_rating TEXT NOT NULL DEFAULT 'LOW',registered_at TEXT NOT NULL,next_due_at TEXT NOT NULL,cmmyy_code TEXT,cert_serial TEXT,tool_file_key TEXT NOT NULL,report_file_key TEXT NOT NULL,status TEXT NOT NULL DEFAULT 'active',journey_type TEXT DEFAULT 'remediation',ingests_client_data INTEGER DEFAULT 0,deploys_to_client INTEGER DEFAULT 0,is_recertification INTEGER DEFAULT 0,previous_id TEXT,retired_at TEXT,retirement_reason TEXT,retirement_declared_by TEXT)",
+        "INSERT INTO registrations_new SELECT id,solution_name,solution_description,COALESCE(NULLIF(owner_email,''),builder_name,''),certifier_email,programme,risk_rating,registered_at,next_due_at,cmmyy_code,cert_serial,tool_file_key,report_file_key,status,journey_type,ingests_client_data,0,is_recertification,previous_id,retired_at,retirement_reason,retirement_declared_by FROM registrations",
+        'DROP TABLE registrations',
+        'ALTER TABLE registrations_new RENAME TO registrations',
+        'COMMIT'
+      ]);
+    }
+  }catch(e){console.warn('Migration partial:',e.message);}
+}
+
+/* ── UTILITIES ── */
+function uid(){if(crypto&&crypto.randomUUID)return crypto.randomUUID();return'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g,function(c){var r=Math.random()*16|0;return(c==='x'?r:(r&3|8)).toString(16);});}
+function today(){return new Date().toISOString().slice(0,10);}
+function due90(from){var d=new Date(from||new Date());d.setDate(d.getDate()+90);return d.toISOString().slice(0,10);}
+function fmt(iso){if(!iso)return'';return new Date(iso).toLocaleDateString('en-GB',{day:'2-digit',month:'short',year:'numeric'});}
+function esc(s){return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');}
+function calcCMMYY(dueISO){var d=new Date(dueISO);var mm=String(d.getMonth()+1).padStart(2,'0');var yy=String(d.getFullYear()).slice(-2);return'C'+mm+yy;}
+function certSerial(id){return'HMW-C-'+id.replace(/-/g,'').slice(-6).toUpperCase();}
+function computeStatus(r){if(r.status==='retired')return'retired';var days=Math.floor((new Date(r.next_due_at)-new Date())/86400000);return days<0?'overdue':days<=14?'due-soon':'active';}
+function statusBadge(r){var s=computeStatus(r);return{active:'<span class="badge b-g">Roadworthy</span>','due-soon':'<span class="badge b-a">Due soon</span>',overdue:'<span class="badge b-r">Overdue</span>',retired:'<span class="badge b-dim">Retired</span>'}[s]||'';}
+function riskBadge(r){var c={LOW:'b-g',MEDIUM:'b-a',HIGH:'b-r',CRITICAL:'b-x'}[r]||'b-dim';return'<span class="badge '+c+'">'+esc(r||'?')+'</span>';}
+function onFile(inp,lblId){var l=document.getElementById(lblId);if(inp.files&&inp.files[0]){l.textContent='✓ '+inp.files[0].name;l.classList.add('ok');}}
+function onJ2HtmlFile(inp){
+  onFile(inp,'j2-html-lbl');
+  if(inp.files&&inp.files[0]){
+    var nameField=document.getElementById('j2-name');
+    if(nameField&&!nameField.value.trim()){
+      var suggested=inp.files[0].name.replace(/\.html?$/i,'').replace(/[-_]+/g,' ').replace(/\b\w/g,function(c){return c.toUpperCase();});
+      nameField.value=suggested;
+      document.getElementById('j2-name-hint').textContent='Suggested from filename — edit if needed';
+    }
+  }
+}
+function readText(inp){return new Promise(function(res,rej){if(!inp.files||!inp.files[0]){rej(new Error('No file'));return;}var r=new FileReader();r.onload=function(e){res({name:inp.files[0].name,text:e.target.result});};r.onerror=function(){rej(new Error('Read failed'));};r.readAsText(inp.files[0]);});}
+function checkCode(v){return v===PASSCODE;}
+function dlBlob(content,type,filename){var b=new Blob([content],{type:type});var u=URL.createObjectURL(b);var a=document.createElement('a');a.href=u;a.download=filename;document.body.appendChild(a);a.click();document.body.removeChild(a);URL.revokeObjectURL(u);}
+
+/* ── PRE/POST SCAN ── */
+function runScan(htmlText){
+  var checks={
+    C1:{label:'External dependencies',critical:true},
+    C2:{label:'Content Security Policy',critical:false},
+    C3:{label:'DOM injection / innerHTML',critical:false},
+    C4:{label:'Dynamic code execution',critical:true},
+    C5:{label:'Input validation',critical:false},
+    C6:{label:'Formula injection guard',critical:false},
+    C7:{label:'Data privacy / local storage',critical:false},
+    C8:{label:'Accenture Security Review block',critical:false},
+    C9:{label:'Certification footer',critical:false}
+  };
+  var R=function(pass,detail){return{pass:pass,detail:detail||''};};
+  var ext=(htmlText.match(/(src|href)=["']https?:\/\//gi)||[]);
+  checks.C1.result=ext.length?R(false,ext.length+' external reference(s)'):R(true,'');
+  checks.C2.result=/meta[^>]+content-security-policy/i.test(htmlText)?R(true,''):R(false,'No CSP meta tag');
+  var ih=(htmlText.match(/\.innerHTML\s*=/g)||[]);
+  checks.C3.result=ih.length?R(null,ih.length+' innerHTML assignment(s) — review'):R(true,'');
+  checks.C4.result=(/\beval\s*\(/.test(htmlText)||/new\s+Function\s*\(/.test(htmlText))?R(false,'eval() or new Function() found'):R(true,'');
+  // C5: auto-detect validation patterns
+  var hasInputs=/<input|<textarea|<select/i.test(htmlText);
+  if(!hasInputs){
+    checks.C5.result=R(true,'N/A — no form inputs detected');
+  }else{
+    var hasRequired=/\brequired\b/i.test(htmlText);
+    var hasTrimCheck=/\.value\.trim\(\)/.test(htmlText);
+    var hasLengthCheck=/\.length\s*[<>=!]/.test(htmlText);
+    var hasPatternCheck=/\.match\(\/|\.test\(\/|isNaN\(|parseInt\(|parseFloat\(/.test(htmlText);
+    var hasEmptyCheck=/===\s*''|!==\s*''|==\s*''/.test(htmlText);
+    var score=(hasRequired?1:0)+(hasTrimCheck?1:0)+(hasLengthCheck?1:0)+(hasPatternCheck?1:0)+(hasEmptyCheck?1:0);
+    if(score>=3)checks.C5.result=R(true,'Validation patterns detected (required, trim, length/pattern checks)');
+    else if(score>=1)checks.C5.result=R(null,'Basic validation found — manual review recommended');
+    else checks.C5.result=R(false,'No validation patterns detected on form inputs');
+  }
+  var hasCsv=/createObjectURL|\.csv/i.test(htmlText);
+  checks.C6.result=hasCsv?(/csvCell|formula.inject/i.test(htmlText)?R(true,'Guard detected'):R(null,'CSV export found — guard not detected')):R(true,'N/A');
+  checks.C7.result=/localStorage|sessionStorage|document\.cookie/.test(htmlText)?R(null,'Storage API usage found — review'):R(true,'');
+  checks.C8.result=/ACCENTURE SECURITY REVIEW|acn-cert-serial/i.test(htmlText)?R(true,''):R(false,'No Accenture Security Review block found');
+  checks.C9.result=/acn-cmmyy|hmw-footer/.test(htmlText)?R(true,'Footer present'):R(false,'No certification footer found');
+  return checks;
+}
+function scanPass(checks,clientData){
+  if(checks.C1.result.pass===false||checks.C4.result.pass===false)return'fail';
+  if(clientData&&(checks.C3.result.pass===false||checks.C5.result.pass===false))return'fail';
+  var anyFail=Object.values(checks).some(function(c){return c.result.pass===false;});
+  var anyWarn=Object.values(checks).some(function(c){return c.result.pass===null;});
+  if(anyFail)return'cond';
+  if(anyWarn)return'cond';
+  return'pass';
+}
+function computeRiskRating(checks,clientData){
+  var c1fail=checks.C1.result.pass===false;
+  var c4fail=checks.C4.result.pass===false;
+  var fails=Object.keys(checks).filter(function(k){return checks[k].result.pass===false;}).length;
+  var reviews=Object.keys(checks).filter(function(k){return checks[k].result.pass===null;}).length;
+  if(c1fail||c4fail)return clientData?'CRITICAL':'HIGH';
+  if(fails>=2)return'HIGH';
+  if(fails>=1)return clientData?'HIGH':'MEDIUM';
+  if(reviews>=3)return clientData?'HIGH':'MEDIUM';
+  if(reviews>=1)return clientData?'MEDIUM':'LOW';
+  return'LOW';
+}
+function ratingBadgeHtml(rating){
+  var cls={LOW:'b-g',MEDIUM:'b-a',HIGH:'b-r',CRITICAL:'b-x'}[rating]||'b-dim';
+  return'<span class="badge '+cls+'">'+esc(rating||'?')+'</span>';
+}
+function renderScanResults(checks,el){
+  var h='';
+  Object.keys(checks).forEach(function(k){
+    var c=checks[k];var p=c.result.pass;
+    var badge=p===true?'<span class="badge b-g">PASS</span>':p===null?'<span class="badge b-a">REVIEW</span>':'<span class="badge b-r">FAIL</span>';
+    h+='<div class="scan-row"><div><strong>'+k+'</strong> '+esc(c.label)+(c.result.detail?'<div class="scan-detail">'+esc(c.result.detail)+'</div>':'')+'</div>'+badge+'</div>';
+  });
+  el.innerHTML=h;
+}
+function renderScanComparison(before,after,tbodyEl){
+  var h='';
+  Object.keys(after).forEach(function(k){
+    var b=before[k],a=after[k];
+    var pb=b?b.result.pass:undefined,pa=a.result.pass;
+    var mkBadge=function(p,detail){
+      var badge=p===true?'<span class="badge b-g">PASS</span>':p===null?'<span class="badge b-a">REVIEW</span>':p===false?'<span class="badge b-r">FAIL</span>':'<span class="badge b-dim">—</span>';
+      return badge+(detail?'<div class="scan-detail">'+esc(detail)+'</div>':'');
+    };
+    var improved=pb!==true&&pa===true;
+    h+='<tr'+(improved?' style="background:rgba(28,68,12,.06);"':'')+'><td><strong>'+k+'</strong><div class="scan-detail">'+esc(a.label)+'</div></td>'+
+      '<td style="text-align:center;">'+mkBadge(pb,b?b.result.detail:'')+'</td>'+
+      '<td style="text-align:center;">'+mkBadge(pa,a.result.detail)+'</td></tr>';
+  });
+  tbodyEl.innerHTML=h;
+}
+
+/* ── FOOTER BUILDER ── */
+function buildFooter(reg){
+  var CS='<'+ '/script>';
+  return '<!-- ACCENTURE SECURITY REVIEW — CERTIFICATION FOOTER. Do not remove. -->\n'+
+    '<meta name="acn-cert-serial" content="'+reg.cert_serial+'">\n'+
+    '<meta name="acn-cmmyy" content="'+reg.cmmyy_code+'">\n'+
+    '<meta name="acn-programme" content="'+esc(reg.programme)+'">\n'+
+    '<div id="hmw-footer" style="position:fixed;bottom:0;left:0;right:0;font-family:monospace;font-size:11px;padding:4px 12px;z-index:9999;display:flex;justify-content:space-between;align-items:center;">\n'+
+    '  <span id="hmw-status"></span>\n'+
+    '  <a href="'+REGISTRY_URL+'" target="_blank" style="color:#9090a0;text-decoration:none;">Security review: cert '+reg.cert_serial+' &mdash; '+reg.solution_name+'</a>\n'+
+    '</div>\n'+
+    '<script>\n'+
+    '(function(){\n'+
+    '  var code=document.querySelector(\'meta[name="acn-cmmyy"]\').content;\n'+
+    '  var mm=parseInt(code.slice(1,3),10),yy=parseInt(code.slice(3,5),10);\n'+
+    '  var exp=new Date(2000+yy,mm,0);\n'+
+    '  var now=new Date(),days=Math.ceil((exp-now)/86400000);\n'+
+    '  var el=document.getElementById(\'hmw-footer\'),st=document.getElementById(\'hmw-status\');\n'+
+    '  if(days<0){el.style.background=\'#c04020\';el.style.color=\'#fff\';st.textContent=\'✕ Security review overdue\';}\n'+
+    '  else if(days<=14){el.style.background=\'#d4a010\';el.style.color=\'#1a1408\';st.textContent=\'⚠ Security review due in \'+days+\' day\'+(days!==1?\'s\':\'\');}\n'+
+    '  else{el.style.background=\'#1a8020\';el.style.color=\'#fff\';st.textContent=\'✓ Security review current — next due \'+exp.toLocaleString(\'en-GB\',{month:\'long\',year:\'numeric\'});}\n'+
+    '})();\n'+
+    CS+'\n';
+}
+function stripExistingFooter(htmlText){
+  return htmlText
+    .replace(/<!--\s*(?:HTML GARAGE|HARRY'S MOTOR WORKS|ACCENTURE SECURITY REVIEW)[^-]*CERTIFICATION FOOTER[\s\S]*?<\/script>\s*/gi,'')
+    .replace(/<meta name="(?:hmw|acn)-cmmyy"[^>]*>\s*/gi,'')
+    .replace(/<meta name="(?:hmw|acn)-cert(?:-serial)?"[^>]*>\s*/gi,'')
+    .replace(/<meta name="(?:hmw|acn)-programme"[^>]*>\s*/gi,'')
+    .replace(/<div id="hmw-footer"[\s\S]*?<\/div>\s*/gi,'');
+}
+function injectFooter(htmlText,reg){
+  var clean=stripExistingFooter(htmlText);
+  var footer=buildFooter(reg);
+  var result=clean.replace(/<\/body>/i,footer+'<\/body>');
+  if(result===clean)result=clean+'\n'+footer;
+  return result;
+}
+
+/* ── JOURNEY 2 INTAKE ── */
+async function submitJ2Intake(){
+  var name=document.getElementById('j2-name').value.trim();
+  var prog=document.getElementById('j2-prog').value.trim();
+  var ownerEmail=document.getElementById('j2-owner-email').value.trim();
+  var certEmail=document.getElementById('j2-certifier-email').value.trim();
+  var htmlInp=document.getElementById('j2-html');
+  var clientData=S.j2.clientData||false;
+  var err=document.getElementById('j2-err');err.style.display='none';
+  if(!name||!prog||!ownerEmail||!certEmail){err.textContent='Complete all required fields.';err.style.display='';return;}
+  if(!htmlInp.files||!htmlInp.files[0]){err.textContent='Select the source HTML file.';err.style.display='';return;}
+  try{
+    var f=await readText(htmlInp);
+    var checks=runScan(f.text);
+    // Pre-generate registration identity at intake time so spec can include it
+    var t=today(),d=due90(t),cmmyy=calcCMMYY(d),id=uid(),serial=certSerial(id);
+    S.j2={name,prog,ownerEmail,certEmail,desc:document.getElementById('j2-desc').value.trim(),srcName:f.name,srcText:f.text,checks,clientData,id,cmmyy,dueDate:d,regDate:t,serial};
+    var scanEl=document.getElementById('j2-scan-results');
+    renderScanResults(checks,scanEl);
+    // Pre-remediation risk rating
+    var preScanRisk=computeRiskRating(checks,clientData);
+    S.j2.preScanRisk=preScanRisk;
+    var preBadgeEl=document.getElementById('j2-pre-risk-badge');
+    if(preBadgeEl)preBadgeEl.innerHTML=ratingBadgeHtml(preScanRisk);
+    // Update filename hint in scan view
+    var fhEl=document.getElementById('j2-filename-hint');
+    if(fhEl)fhEl.textContent='_'+cmmyy;
+    var upHint=document.getElementById('up-cmmyy-hint');
+    if(upHint)upHint.textContent='_'+cmmyy;
+    // Harry voice — nuanced based on scan severity
+    var c1fail=checks.C1.result.pass===false,c4fail=checks.C4.result.pass===false;
+    var failCount=Object.keys(checks).filter(function(k){return checks[k].result.pass===false;}).length;
+    var reviewCount=Object.keys(checks).filter(function(k){return checks[k].result.pass===null;}).length;
+    var voice;
+    if(clientData&&(c1fail||c4fail)){voice='There\'s client data involved and a critical finding — that combination really needs sorting before this tool goes anywhere near deployment. The spec will walk you through it.';}
+    else if(clientData){voice='Good that you flagged the client data — it means we need to be especially thorough on C3 and C5. The spec covers exactly what to check.';}
+    else if(c4fail){voice='There\'s an eval() in there — that\'s one we really can\'t leave in. Don\'t worry, the spec will show you how to fix it.';}
+    else if(c1fail){voice='There are external dependencies loading in — that\'s one to address before this goes out. The checklist covers it.';}
+    else if(failCount>=2){voice='A few things to work through — nothing that can\'t be fixed. Take the spec to Claude and it\'ll walk you through each one.';}
+    else if(failCount===1&&reviewCount>=2){voice='One thing to fix and a few things to look at — not bad at all. The spec will guide you through it.';}
+    else if(failCount===1){voice='One thing to sort — the spec will show you exactly what to do.';}
+    else if(reviewCount>=3){voice='Quite a few amber flags — worth going through these carefully before you come back. Nothing alarming, just worth the attention.';}
+    else if(reviewCount>=1){voice='One or two things flagged for a closer look — shouldn\'t take long to sort.';}
+    else{voice='Looking good — you\'ve done your homework. Let\'s get the remediated version in and get it certified.';}
+    document.getElementById('j2-scan-voice').textContent='HARRY: "'+voice+'"';
+    show('j2-scan');
+  }catch(e){err.textContent='Scan failed: '+e.message;err.style.display='';}
+}
+
+/* ── JOURNEY 1: GENERAL PROMPT DOWNLOAD ── */
+function downloadGeneral(){
+  var CS='<'+ '/script>';
+  var CB='<'+ '/body>';
+  var BT='\`\`\`';
+  var t=today(),d=due90(t),cmmyy=calcCMMYY(d);
+  var md=[
+    "# Accenture HTML Security Remediation Prompt",
+    "**Issued: "+t+" | Certification target: "+cmmyy+" (expires: "+d+")**",
+    "",
+    "---",
+    "",
+    "You are a security engineer carrying out a baseline HTML security hardening for an Accenture programme. Apply checks C1–C8 to the HTML file provided. Produce two output artefacts.",
+    "",
+    "## Outputs required",
+    "",
+    "**Artefact 1 — Remediated HTML:** Source file with all remediations applied, inline Accenture Security Review comment block (C8), certification footer (C9) with values pre-filled, and the CMMYY suffix appended to the filename.",
+    "",
+    "**Artefact 2 — Remediation report (.md):** Pre-remediation findings, changes applied per check, risk rating (LOW/MEDIUM/HIGH/CRITICAL) with written rationale, outstanding items.",
+    "",
+    "**Output filename:** `<original-name>_"+cmmyy+".html`",
+    "",
+    "---",
+    "",
+    "## C1 — External Dependencies",
+    "Checks that no scripts, stylesheets or fonts are loaded from remote URLs (CDNs, Google Fonts, etc.). These create network calls on every use and introduce supply-chain risk.",
+    "",
+    "**Find:** `(src|href)=[\"']https?://`",
+    "**Fix:** Download and inline CDN scripts verbatim. Run `npm audit` on any inlined library. Remove Google Fonts — strip preconnect links and remove the font name from the CSS font stack.",
+    "",
+    "## C2 — Content Security Policy",
+    "A CSP meta tag restricts what resources the browser will load, providing defence-in-depth against injected scripts.",
+    "",
+    "**Check for:** `<meta http-equiv=\"Content-Security-Policy\">` with directives: `default-src 'none'` `script-src 'unsafe-inline'` `style-src 'unsafe-inline'` `img-src data:` `connect-src 'none'` `form-action 'none'` `base-uri 'none'` `object-src 'none'` `frame-src 'none'`",
+    "**Fix:** Add if absent, immediately after `<meta charset=\"utf-8\">`.",
+    "",
+    "## C3 — DOM Injection / innerHTML",
+    "Unsanitised writes to innerHTML are the primary XSS vector in single-file HTML tools.",
+    "",
+    "**Find:** `.innerHTML =` assignments without sanitisation.",
+    "**Fix:** Add and use an `esc()` helper for all DOM output:",
+    BT+"javascript",
+    "function esc(s){return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/\"/g,'&quot;').replace(/'/g,'&#39;');}",
+    BT,
+    "",
+    "## C4 — Dynamic Code Execution",
+    "eval() and new Function() allow arbitrary code execution from strings, including from user input or data.",
+    "",
+    "**Find:** `eval(` or `new Function(`",
+    "**Fix:** Replace with explicit logic. If used for JSON parsing, use `JSON.parse()` instead.",
+    "",
+    "## C5 — Input Validation",
+    "User-supplied data must be validated before it is processed or rendered.",
+    "",
+    "**Check:** Required fields validated before processing. Column headers or data types checked on load. Unexpected inputs rejected with an error, not silently processed.",
+    "",
+    "## C6 — Formula Injection Guard",
+    "If the tool exports CSV, cell values beginning with =, +, -, or @ can be interpreted as formulas in Excel.",
+    "",
+    "**Fix:** Guard every exported cell value:",
+    BT+"javascript",
+    "function csvCell(v){var s=String(v==null?'':v);if(/^[=+\\-@]/.test(s))s=\"'\"+s;return'\"'+s.replace(/\"/g,'\"\"')+'\"';}",
+    BT,
+    "",
+    "## C7 — Data Persistence",
+    "localStorage, sessionStorage and cookies persist data beyond the browser session and can be read by other scripts.",
+    "",
+    "**Check:** Any use of these APIs. Remove if not required. If required, document the data stored and justify in C8.",
+    "",
+    "## C8 — Accenture Security Review Comment Block",
+    "An in-source audit trail confirming each check was reviewed. Does not contain any reference to internal tooling names.",
+    "",
+    "**Add immediately after the CSP tag:**",
+    BT+"html",
+    "<!--",
+    "  ACCENTURE SECURITY REVIEW — [SOLUTION NAME]",
+    "  Reviewed: "+t,
+    "",
+    "  This file has undergone standardised HTML security checks on Accenture systems.",
+    "",
+    "  C1 EXTERNAL DEPENDENCIES — Checks for scripts, stylesheets or fonts loaded from",
+    "     remote URLs. These create network calls and introduce supply-chain risk.",
+    "     Result: [PASS|FAIL|PARTIAL] — [what was found]",
+    "     Remediation: [what was done, or N/A]",
+    "",
+    "  C2 CONTENT SECURITY POLICY — Checks for a CSP meta tag restricting resource",
+    "     loading to same-origin or inline only.",
+    "     Result: [PASS|FAIL|PARTIAL] — [what was found]",
+    "     Remediation: [what was done, or N/A]",
+    "",
+    "  C3 DOM INJECTION — Checks for innerHTML assignments without sanitisation.",
+    "     Unsanitised DOM writes are the primary XSS vector in single-file HTML tools.",
+    "     Result: [PASS|FAIL|PARTIAL] — [what was found]",
+    "     Remediation: [what was done, or N/A]",
+    "",
+    "  C4 DYNAMIC CODE EXECUTION — Checks for eval() and new Function().",
+    "     Result: [PASS|FAIL|PARTIAL] — [what was found]",
+    "     Remediation: [what was done, or N/A]",
+    "",
+    "  C5 INPUT VALIDATION — Checks that user-supplied data is validated before",
+    "     processing.",
+    "     Result: [PASS|FAIL|PARTIAL] — [what was found]",
+    "     Remediation: [what was done, or N/A]",
+    "",
+    "  C6 FORMULA INJECTION — Checks that CSV exports guard against formula",
+    "     injection (leading =, +, -, @ characters).",
+    "     Result: [PASS|FAIL|PARTIAL|N/A] — [what was found]",
+    "     Remediation: [what was done, or N/A]",
+    "",
+    "  C7 DATA PERSISTENCE — Checks for localStorage, sessionStorage, or cookie",
+    "     usage. Persistent storage creates data residency risk.",
+    "     Result: [PASS|FAIL|PARTIAL|N/A] — [what was found]",
+    "     Remediation: [what was done, or N/A]",
+    "-->",
+    BT,
+    "",
+    "## C9 — Certification Footer",
+    "",
+    "Add immediately before `"+CB+"`. The footer displays a discreet security review status bar when the tool is opened, and links to the certification record for audit purposes.",
+    "",
+    BT+"html",
+    "<!-- ACCENTURE SECURITY REVIEW — CERTIFICATION FOOTER. Do not remove. -->",
+    "<meta name=\"acn-cert-serial\" content=\"CERT_SERIAL\">",
+    "<meta name=\"acn-cmmyy\" content=\""+cmmyy+"\">",
+    "<meta name=\"acn-programme\" content=\"PROGRAMME_NAME\">",
+    "<div id=\"hmw-footer\" style=\"position:fixed;bottom:0;left:0;right:0;font-family:monospace;font-size:11px;padding:4px 12px;z-index:9999;display:flex;justify-content:space-between;align-items:center;\">",
+    "  <span id=\"hmw-status\"></span>",
+    "  <a href=\"https://tile.accenture.com/view/html-garage/\" target=\"_blank\" style=\"color:#9090a0;text-decoration:none;\">Security review: cert CERT_SERIAL &mdash; SOLUTION_NAME</a>",
+    "</div>",
+    "<script>",
+    "(function(){",
+    "  var code=document.querySelector('meta[name=\"acn-cmmyy\"]').content;",
+    "  var mm=parseInt(code.slice(1,3),10),yy=parseInt(code.slice(3,5),10);",
+    "  var exp=new Date(2000+yy,mm,0);",
+    "  var now=new Date(),days=Math.ceil((exp-now)/86400000);",
+    "  var el=document.getElementById('hmw-footer'),st=document.getElementById('hmw-status');",
+    "  if(days<0){el.style.background='#c04020';el.style.color='#fff';st.textContent='\\u2715 Security review overdue';}",
+    "  else if(days<=14){el.style.background='#d4a010';el.style.color='#1a1408';st.textContent='\\u26a0 Security review due in '+days+' day'+(days!==1?'s':'');}",
+    "  else{el.style.background='#1a8020';el.style.color='#fff';st.textContent='\\u2713 Security review current \\u2014 next due '+exp.toLocaleString('en-GB',{month:'long',year:'numeric'});}",
+    "})();",
+    CS,
+    BT,
+    "",
+    "---",
+    "",
+    "## Risk Rating",
+    "",
+    "| Rating | Criteria |","|---|---|",
+    "| LOW | All C1–C8 fully resolved. No residual risk. |",
+    "| MEDIUM | Minor residual risk documented. Safe for deployment. |",
+    "| HIGH | Significant residual risk. InfoSec awareness recommended. |",
+    "| CRITICAL | Unresolved critical finding. Not recommended for deployment. |"
+  ].join('\n');
+  dlBlob(md,'text/markdown','acn-html-security-prompt-'+t+'.md');
+}
+
+/* ── JOURNEY 2: PERSONALISED SPEC DOWNLOAD ── */
+function downloadSpec(){
+  var j=S.j2;if(!j.name)return;
+  var CS='<'+ '/script>';
+  var CB='<'+ '/body>';
+  var BT='\`\`\`';
+  var findings=[];
+  if(j.checks){
+    Object.keys(j.checks).forEach(function(k){var c=j.checks[k];if(c.result.pass!==true)findings.push('- **'+k+'** '+c.label+(c.result.detail?' — '+c.result.detail:''));});
+  }
+  if(j.clientData)findings.unshift('- **CLIENT DATA DECLARED**: C3 and C5 are treated as critical for this tool.');
+  var findingsStr=findings.length?findings.join('\n'):'No automatic findings. Manual review still required for C5.';
+  var nameSlug=j.srcName.replace(/\.html?$/i,'');
+  var certFilename=nameSlug+'_'+j.cmmyy+'.html';
+  var md=[
+    "# Accenture HTML Security Remediation — Personalised Spec",
+    "**Solution:** "+j.name,
+    "**Programme:** "+j.prog,
+    "**Owner:** "+j.ownerEmail,
+    "**Certifier:** "+j.certEmail,
+    "**Source file:** "+j.srcName,
+    "**Issued:** "+j.regDate,
+    "**Certification ref:** "+j.serial,
+    "**CMMYY:** "+j.cmmyy+" (expires: "+j.dueDate+")",
+    "**Client data declared:** "+(j.clientData?'YES — C3 and C5 are critical':'No'),
+    "",
+    "---",
+    "",
+    "## Pre-scan findings on source file",
+    "",
+    findingsStr,
+    "",
+    "---",
+    "",
+    "## Instructions",
+    "",
+    "Apply checks C1–C9 as per the standard Accenture HTML security prompt. Pay particular attention to the findings listed above."+(j.clientData?' **Client data is declared for this tool — C3 and C5 must fully pass.**':''),
+    "",
+    "**Output filename:** `"+certFilename+"` (do not change — the CMMYY suffix is required for certification tracking)",
+    "",
+    "Produce:",
+    "1. Remediated HTML file named exactly `"+certFilename+"`, containing:",
+    "   - The Accenture Security Review comment block (C8)",
+    "   - The certification footer (C9) with the values below pre-filled",
+    "2. Remediation report `"+nameSlug+"-report.md` including per-check findings, changes made, risk rating and rationale",
+    "",
+    "---",
+    "",
+    "## C8 — Accenture Security Review Comment Block",
+    "",
+    "Add immediately after the CSP tag. Fill in the result and remediation for each check:",
+    "",
+    BT+"html",
+    "<!--",
+    "  ACCENTURE SECURITY REVIEW — "+j.name,
+    "  Reviewed: "+j.regDate,
+    "  Ref: "+j.serial,
+    "",
+    "  This file has undergone standardised HTML security checks on Accenture systems.",
+    "",
+    "  C1 EXTERNAL DEPENDENCIES — Checks for scripts, stylesheets or fonts loaded from",
+    "     remote URLs. These create network calls and introduce supply-chain risk.",
+    "     Result: [fill in]",
+    "     Remediation: [fill in]",
+    "",
+    "  C2 CONTENT SECURITY POLICY — Checks for a CSP meta tag restricting resource",
+    "     loading to same-origin or inline only.",
+    "     Result: [fill in]",
+    "     Remediation: [fill in]",
+    "",
+    "  C3 DOM INJECTION — Checks for innerHTML assignments without sanitisation."+(j.clientData?' [CRITICAL for this tool — client data declared]':''),
+    "     Result: [fill in]",
+    "     Remediation: [fill in]",
+    "",
+    "  C4 DYNAMIC CODE EXECUTION — Checks for eval() and new Function().",
+    "     Result: [fill in]",
+    "     Remediation: [fill in]",
+    "",
+    "  C5 INPUT VALIDATION — Checks that user-supplied data is validated before",
+    "     processing."+(j.clientData?' [CRITICAL for this tool — client data declared]':''),
+    "     Result: [fill in]",
+    "     Remediation: [fill in]",
+    "",
+    "  C6 FORMULA INJECTION — Checks that CSV exports guard against formula injection.",
+    "     Result: [fill in]",
+    "     Remediation: [fill in]",
+    "",
+    "  C7 DATA PERSISTENCE — Checks for localStorage, sessionStorage, or cookie usage.",
+    "     Result: [fill in]",
+    "     Remediation: [fill in]",
+    "-->",
+    BT,
+    "",
+    "---",
+    "",
+    "## C9 — Certification Footer (copy verbatim, values already filled in)",
+    "",
+    "Add immediately before `"+CB+"`. Do not change the values — they are pre-seeded for this certification.",
+    "",
+    BT+"html",
+    "<!-- ACCENTURE SECURITY REVIEW — CERTIFICATION FOOTER. Do not remove. -->",
+    "<meta name=\"acn-cert-serial\" content=\""+j.serial+"\">",
+    "<meta name=\"acn-cmmyy\" content=\""+j.cmmyy+"\">",
+    "<meta name=\"acn-programme\" content=\""+j.prog+"\">",
+    "<div id=\"hmw-footer\" style=\"position:fixed;bottom:0;left:0;right:0;font-family:monospace;font-size:11px;padding:4px 12px;z-index:9999;display:flex;justify-content:space-between;align-items:center;\">",
+    "  <span id=\"hmw-status\"></span>",
+    "  <a href=\""+REGISTRY_URL+"\" target=\"_blank\" style=\"color:#9090a0;text-decoration:none;\">Security review: cert "+j.serial+" &mdash; "+j.name+"</a>",
+    "</div>",
+    "<script>",
+    "(function(){",
+    "  var code=document.querySelector('meta[name=\"acn-cmmyy\"]').content;",
+    "  var mm=parseInt(code.slice(1,3),10),yy=parseInt(code.slice(3,5),10);",
+    "  var exp=new Date(2000+yy,mm,0);",
+    "  var now=new Date(),days=Math.ceil((exp-now)/86400000);",
+    "  var el=document.getElementById('hmw-footer'),st=document.getElementById('hmw-status');",
+    "  if(days<0){el.style.background='#c04020';el.style.color='#fff';st.textContent='\\u2715 Security review overdue';}",
+    "  else if(days<=14){el.style.background='#d4a010';el.style.color='#1a1408';st.textContent='\\u26a0 Security review due in '+days+' day'+(days!==1?'s':'');}",
+    "  else{el.style.background='#1a8020';el.style.color='#fff';st.textContent='\\u2713 Security review current \\u2014 next due '+exp.toLocaleString('en-GB',{month:'long',year:'numeric'});}",
+    "})();",
+    CS,
+    BT,
+    "",
+    "---",
+    "",
+    "## Risk Rating",
+    "",
+    "| Rating | Criteria |","|---|---|",
+    "| LOW | All C1–C8 fully resolved. No residual risk. |",
+    "| MEDIUM | Minor residual risk documented. Safe for deployment. |",
+    "| HIGH | Significant residual risk. InfoSec awareness recommended. |",
+    "| CRITICAL | Unresolved critical finding. Not recommended for deployment. |"
+  ].join('\n');
+  dlBlob(md,'text/markdown','acn-security-spec-'+j.name.replace(/[^a-z0-9]/gi,'-').toLowerCase()+'-'+j.regDate+'.md');
+}
+
+/* ── JOURNEY 2: POST-SCAN ── */
+async function runPostScan(){
+  var htmlInp=document.getElementById('up-html');
+  var mdInp=document.getElementById('up-md');
+  var errEl=document.getElementById('up-err');errEl.style.display='none';
+  if(!htmlInp.files||!htmlInp.files[0]){errEl.textContent='Select the remediated HTML file.';errEl.style.display='';return;}
+  if(!mdInp.files||!mdInp.files[0]){errEl.textContent='Select the remediation report.';errEl.style.display='';return;}
+  var btn=document.getElementById('btn-up');
+  btn.disabled=true;btn.textContent='Scanning…';
+  try{
+    var htmlFile=await readText(htmlInp);
+    var mdFile=await readText(mdInp);
+    var postChecks=runScan(htmlFile.text);
+    var clientData=S.j2.clientData||false;
+    var postRisk=computeRiskRating(postChecks,clientData);
+    // Store for confirmCertify
+    S.j2._htmlFile=htmlFile;S.j2._mdFile=mdFile;
+    S.j2._postChecks=postChecks;S.j2._postRisk=postRisk;
+    // Render comparison table
+    renderScanComparison(S.j2.checks||{},postChecks,document.getElementById('j2-postscan-table'));
+    // Risk badges
+    document.getElementById('j2-ps-pre-badge').innerHTML=ratingBadgeHtml(S.j2.preScanRisk||'?');
+    document.getElementById('j2-ps-post-badge').innerHTML=ratingBadgeHtml(postRisk);
+    // Warn on remaining critical issues
+    var warnEl=document.getElementById('j2-ps-warn');
+    var warnTxt=document.getElementById('j2-ps-warn-text');
+    var remaining=Object.keys(postChecks).filter(function(k){return postChecks[k].result.pass===false&&(postChecks[k].critical||(clientData&&(k==='C3'||k==='C5')));});
+    if(remaining.length){
+      warnTxt.textContent='Critical checks still failing: '+remaining.join(', ')+'. Certifying is possible but the tool should not be deployed until these are resolved.';
+      warnEl.style.display='';
+    }else{
+      warnEl.style.display='none';
+    }
+    show('j2-post-scan');
+  }catch(e){errEl.textContent='Scan failed: '+e.message;errEl.style.display='';}
+  finally{btn.disabled=false;btn.textContent='Run post-scan →';}
+}
+
+/* ── JOURNEY 2: CONFIRM CERTIFY ── */
+async function confirmCertify(){
+  var j=S.j2;
+  var errEl=document.getElementById('j2-ps-err');errEl.style.display='none';
+  if(!j._htmlFile||!j._mdFile){errEl.textContent='No files loaded — go back and re-upload.';errEl.style.display='';return;}
+  if(!S.role.canWriteSqlite){errEl.textContent='Database not writable — ask the tile admin to enable all-viewers write mode in Manage → Settings → Services → Database.';errEl.style.display='';return;}
+  var btn=document.getElementById('btn-certify');
+  btn.disabled=true;btn.textContent='Certifying…';
+  try{
+    var nm=j.name||'',pr=j.prog||'',owEmail=j.ownerEmail||'',certEmail=j.certEmail||'',dc=j.desc||'';
+    var clientData=j.clientData?1:0;
+    var risk=j._postRisk||'MEDIUM';
+    var id=j.id||uid();
+    var t=today(),d=j.dueDate||due90(t),cmmyy=j.cmmyy||calcCMMYY(d),serial=j.serial||certSerial(id);
+    var reg={id,solution_name:nm,solution_description:dc,owner_email:owEmail,certifier_email:certEmail,programme:pr,risk_rating:risk,registered_at:t,next_due_at:d,cmmyy_code:cmmyy,cert_serial:serial,status:'active',journey_type:'remediation'};
+    var modifiedHtml=injectFooter(j._htmlFile.text,reg);
+    var baseFilename=j._htmlFile.name.replace(/\.html$/i,'').replace(/_C\d{4}$/i,'');
+    var certFilename=baseFilename+'_'+cmmyy+'.html';
+    var toolKey='tools/'+id+'/'+certFilename;
+    var repKey='tools/'+id+'/report.md';
+    await tile.files.put(toolKey,new Blob([modifiedHtml],{type:'text/html'}),{scope:'shared',filename:certFilename,contentType:'text/html'});
+    await tile.files.put(repKey,new Blob([j._mdFile.text],{type:'text/markdown'}),{scope:'shared',filename:j._mdFile.name,contentType:'text/markdown'});
+    await tile.sqlite.execute(
+      "INSERT INTO registrations(id,solution_name,solution_description,owner_email,certifier_email,programme,risk_rating,registered_at,next_due_at,cmmyy_code,cert_serial,tool_file_key,report_file_key,status,journey_type,ingests_client_data,deploys_to_client,is_recertification,previous_id) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,'active',?,?,?,?,?)",
+      [id,nm,dc,owEmail,certEmail,pr,risk,t,d,cmmyy,serial,toolKey,repKey,'remediation',clientData,S.j2.deploysToClient||0,S.j2.isRecert?1:0,S.j2.prevId||null]
+    );
+    S.lastReg=Object.assign({},reg,{tool_file_key:toolKey,report_file_key:repKey});
+    document.getElementById('cd-serial').textContent=serial;
+    document.getElementById('cd-cmmyy').textContent=cmmyy;
+    document.getElementById('cd-name').textContent=nm;
+    document.getElementById('cd-prog').textContent=pr;
+    document.getElementById('cd-owner').textContent=owEmail;
+    document.getElementById('cd-certifier').textContent=certEmail;
+    document.getElementById('cd-date').textContent=fmt(t);
+    document.getElementById('cd-due').textContent=fmt(d);
+    document.getElementById('cd-rename').textContent=certFilename;
+    document.getElementById('cd-risk-badge').innerHTML=ratingBadgeHtml(risk);
+    var allPass=Object.values(j._postChecks||{}).every(function(c){return c.result.pass===true;});
+    var voice=allPass?'There you go — all clear. Your CMMYY is '+cmmyy+'. Don\'t forget to rename the file. See you in 90 days.':risk==='HIGH'||risk==='CRITICAL'?'Certified — well done. There are still a few things flagged, so worth sorting those before the tool goes near a client. CMMYY is '+cmmyy+'.':'Conditional cert — most of it\'s in great shape. Have a look at the remaining items when you get a chance. CMMYY is '+cmmyy+'. Come back in 90 days.';
+    document.getElementById('cert-done-voice').textContent='HARRY: "'+voice+'"';
+    var bUrl=URL.createObjectURL(new Blob([modifiedHtml],{type:'text/html'}));
+    var dlLink=document.getElementById('cd-dl-html');
+    dlLink.href=bUrl;dlLink.download=certFilename;dlLink.style.display='inline-block';
+    S.j2={};
+    show('cert-done');
+  }catch(e){errEl.textContent='Failed: '+e.message;errEl.style.display='';}
+  finally{btn.disabled=false;btn.textContent='Certify & register →';}
+}
+
+/* ── JOURNEY 3: UPLOAD & REGISTER ── */
+async function submitUpload(journeyType){
+  var htmlInp=document.getElementById('j3-html');
+  var mdInp=document.getElementById('j3-md');
+  var risk=document.getElementById('j3-risk').value;
+  var code=document.getElementById('j3-code').value;
+  var errEl=document.getElementById('j3-err');errEl.style.display='none';
+  if(!document.getElementById('j3-decl').checked){errEl.textContent='You must confirm the declaration.';errEl.style.display='';return;}
+  if(!htmlInp.files||!htmlInp.files[0]){errEl.textContent='Select the HTML file.';errEl.style.display='';return;}
+  if(!mdInp.files||!mdInp.files[0]){errEl.textContent='Select the remediation report.';errEl.style.display='';return;}
+  if(!risk){errEl.textContent='Select a risk rating.';errEl.style.display='';return;}
+  if(!checkCode(code)){errEl.textContent='Incorrect access code.';errEl.style.display='';return;}
+  if(!S.role.canWriteSqlite){errEl.textContent='Database not writable — ask the tile admin to enable all-viewers write mode in Manage → Settings → Services → Database.';errEl.style.display='';return;}
+  var btn=document.getElementById('btn-j3');
+  btn.disabled=true;btn.textContent='Certifying…';
+  try{
+    var htmlFile=await readText(htmlInp);
+    var mdFile=await readText(mdInp);
+    var nm=document.getElementById('j3-name').value.trim();
+    var pr=document.getElementById('j3-prog').value.trim();
+    var owEmail=document.getElementById('j3-owner-email').value.trim();
+    var certEmail=document.getElementById('j3-certifier-email').value.trim();
+    var checks=runScan(htmlFile.text);
+    var autoRisk=computeRiskRating(checks,false);
+    var finalRisk=risk||autoRisk;
+    var id=uid(),t=today(),d=due90(t),cmmyy=calcCMMYY(d),serial=certSerial(id);
+    var reg={id,solution_name:nm,solution_description:'',owner_email:owEmail,certifier_email:certEmail,programme:pr,risk_rating:finalRisk,registered_at:t,next_due_at:d,cmmyy_code:cmmyy,cert_serial:serial,status:'active',journey_type:'cert-only'};
+    var modifiedHtml=injectFooter(htmlFile.text,reg);
+    var baseFilename=htmlFile.name.replace(/\.html$/i,'').replace(/_C\d{4}$/i,'');
+    var certFilename=baseFilename+'_'+cmmyy+'.html';
+    var toolKey='tools/'+id+'/'+certFilename;
+    var repKey='tools/'+id+'/report.md';
+    await tile.files.put(toolKey,new Blob([modifiedHtml],{type:'text/html'}),{scope:'shared',filename:certFilename,contentType:'text/html'});
+    await tile.files.put(repKey,new Blob([mdFile.text],{type:'text/markdown'}),{scope:'shared',filename:mdFile.name,contentType:'text/markdown'});
+    await tile.sqlite.execute(
+      "INSERT INTO registrations(id,solution_name,solution_description,owner_email,certifier_email,programme,risk_rating,registered_at,next_due_at,cmmyy_code,cert_serial,tool_file_key,report_file_key,status,journey_type,ingests_client_data) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,'active','cert-only',0)",
+      [id,nm,'',owEmail,certEmail,pr,finalRisk,t,d,cmmyy,serial,toolKey,repKey]
+    );
+    S.lastReg=Object.assign({},reg,{tool_file_key:toolKey,report_file_key:repKey});
+    document.getElementById('cd-serial').textContent=serial;
+    document.getElementById('cd-cmmyy').textContent=cmmyy;
+    document.getElementById('cd-name').textContent=nm;
+    document.getElementById('cd-prog').textContent=pr;
+    document.getElementById('cd-owner').textContent=owEmail;
+    document.getElementById('cd-certifier').textContent=certEmail;
+    document.getElementById('cd-date').textContent=fmt(t);
+    document.getElementById('cd-due').textContent=fmt(d);
+    document.getElementById('cd-rename').textContent=certFilename;
+    document.getElementById('cd-risk-badge').innerHTML=ratingBadgeHtml(finalRisk);
+    document.getElementById('cert-done-voice').textContent='HARRY: "There you go — cert only, as requested. Your CMMYY is '+cmmyy+'. Don\'t forget to rename the file. See you in 90 days."';
+    var bUrl=URL.createObjectURL(new Blob([modifiedHtml],{type:'text/html'}));
+    var dlLink=document.getElementById('cd-dl-html');
+    dlLink.href=bUrl;dlLink.download=certFilename;dlLink.style.display='inline-block';
+    show('cert-done');
+  }catch(e){errEl.textContent='Failed: '+e.message;errEl.style.display='';}
+  finally{btn.disabled=false;btn.textContent='Run scan & certify →';}
+}
+
+/* ── CERT PRINT ── */
+function printCert(){var r=S.lastReg;if(!r)return;S.certFrom='done';renderC001(r);show('cert-doc');}
+function openCertFromBoard(id){var r=boardData[id];if(!r)return;S.certFrom='board';renderC001(r);show('cert-doc');}
+function backFromDoc(type){if(type==='cert')show(S.certFrom==='board'?'board':'cert-done');else show('v5c-done');}
+function renderC001(r){
+  var grade=r.risk_rating;
+  var stampCls=grade==='CRITICAL'||grade==='HIGH'?'fail':(grade==='MEDIUM'?'cond':'pass');
+  var stampTxt=stampCls==='pass'?'PASS':stampCls==='cond'?'CONDITIONAL\nPASS':'FAIL';
+  var cn=r.cert_serial||'HMW-C-LEGACY';
+  var certFile=r.tool_file_key?(r.tool_file_key.split('/').pop()):'(see registry)';
+  document.getElementById('c001-body').innerHTML=
+    '<div class="c001-hdr"><div class="c001-badge">HTML GARAGE</div><div class="c001-sub">SECURITY TEST CERTIFICATE</div></div>'+
+    '<div class="c001-meta"><span>Cert No: <strong>'+esc(cn)+'</strong></span><span>Station AT10047</span><span>'+fmt(r.registered_at)+'</span></div>'+
+    '<div class="c001-body">'+
+      '<div class="c001-row"><span class="lbl">Solution:</span><span>'+esc(r.solution_name)+'</span></div>'+
+      '<div class="c001-row"><span class="lbl">Programme:</span><span>'+esc(r.programme||'—')+'</span></div>'+
+      '<div class="c001-row"><span class="lbl">Owner:</span><span>'+esc(r.owner_email||r.owner_name||r.certifier_name||'—')+'</span></div>'+
+      '<div class="c001-row"><span class="lbl">Certified by:</span><span>'+esc(r.certifier_email||'—')+'</span></div>'+
+      '<div class="c001-row"><span class="lbl">Certified filename:</span><span style="color:#1a6030;font-weight:bold;">'+esc(certFile)+'</span></div>'+
+    '</div>'+
+    '<div class="c001-bottom">'+
+      '<div class="c001-stamp '+stampCls+'" style="white-space:pre;">'+stampTxt+'</div>'+
+      '<div class="c001-cmmyy"><div class="ct" style="color:#1a6030;">CMMYY Code</div><div class="cm-code">'+esc(r.cmmyy_code||'—')+'</div><div style="font-size:.7rem;margin-top:6px;color:#2a5030;">Valid from: '+fmt(r.registered_at)+'<br>Valid until: '+fmt(r.next_due_at)+'<br><br>Append <strong>_'+esc(r.cmmyy_code||'CMMYY')+'</strong> to filename before distributing.</div></div>'+
+    '</div>'+
+    '<div class="c001-sig">This certificate confirms mechanical compliance at date of test. The primary danger is not the roadworthiness of the vehicle. It is how it is driven.<br><br>Created by Tom Hensby and Davin Libert Lewis</div>';
+}
+
+/* ── JOURNEY 4: V5C ── */
+async function startV5C(id){
+  show('v5c');
+  try{
+    var res=await tile.sqlite.execute("SELECT id,solution_name,owner_email,programme,cmmyy_code,next_due_at FROM registrations WHERE status!='retired' ORDER BY solution_name");
+    var sel=document.getElementById('v5c-sel');
+    sel.innerHTML='<option value="">-- Select solution --</option>';
+    res.rows.forEach(function(r){var o=document.createElement('option');o.value=r.id;o.textContent=r.solution_name+(r.programme?' ('+r.programme+')':'');o.dataset.r=JSON.stringify(r);sel.appendChild(o);});
+    if(id){sel.value=id;onV5CSel();}
+  }catch(e){showErr(e);}
+}
+function onV5CSel(){
+  var sel=document.getElementById('v5c-sel');
+  var o=sel.options[sel.selectedIndex];
+  var cur=document.getElementById('v5c-current');
+  var det=document.getElementById('v5c-cur-detail');
+  if(o&&o.dataset.r){
+    var r=JSON.parse(o.dataset.r);
+    det.innerHTML='Owner: <strong>'+esc(r.owner_email||'—')+'</strong><br>Programme: '+esc(r.programme||'—')+' — CMMYY: <span style="color:var(--a)">'+esc(r.cmmyy_code||'—')+'</span> — Expires: '+fmt(r.next_due_at);
+    cur.style.display='';
+  }else cur.style.display='none';
+}
+async function submitV5C(){
+  var sel=document.getElementById('v5c-sel');
+  var newEmail=document.getElementById('v5c-new-email').value.trim();
+  var newProg=document.getElementById('v5c-new-prog').value.trim();
+  var reason=document.getElementById('v5c-reason').value;
+  var fromName=document.getElementById('v5c-from-name').value.trim();
+  var code=document.getElementById('v5c-code').value;
+  var err=document.getElementById('v5c-err');err.style.display='none';
+  if(!sel.value||!newEmail||!reason||!fromName){err.textContent='Complete all required fields.';err.style.display='';return;}
+  if(!checkCode(code)){err.textContent='Incorrect access code.';err.style.display='';return;}
+  if(!S.role.canWriteSqlite){err.textContent='Database not writable.';err.style.display='';return;}
+  var btn=document.getElementById('btn-v5c');btn.disabled=true;
+  var o=sel.options[sel.selectedIndex];
+  var prev=o.dataset.r?JSON.parse(o.dataset.r):{};
+  var t=today();
+  try{
+    var tid=uid();
+    var updates=["owner_email=?"];var vals=[newEmail];
+    if(newProg){updates.push("programme=?");vals.push(newProg);}
+    vals.push(sel.value);
+    await tile.sqlite.execute("UPDATE registrations SET "+updates.join(',')+" WHERE id=?",vals);
+    await tile.sqlite.execute("INSERT INTO transfer_history(id,registration_id,from_owner_email,to_owner_email,from_programme,to_programme,reason,transfer_date) VALUES(?,?,?,?,?,?,?,?)",
+      [tid,sel.value,prev.owner_email||'',newEmail,prev.programme||'',newProg||prev.programme||'',reason,t]);
+    S.lastV5C={solution_name:prev.solution_name,new_email:newEmail,cmmyy:prev.cmmyy_code,cert_serial:'HMW-V-'+tid.slice(-6).toUpperCase(),date:t,prev_email:fromName,from_prog:prev.programme,to_prog:newProg||prev.programme,reason};
+    document.getElementById('v5c-done-name').textContent=prev.solution_name||'—';
+    document.getElementById('v5c-done-owner').textContent=newEmail;
+    document.getElementById('v5c-done-date').textContent=fmt(t);
+    show('v5c-done');
+  }catch(e){err.textContent='Failed: '+e.message;err.style.display='';}
+  finally{btn.disabled=false;}
+}
+function printV5C(){var v=S.lastV5C;if(!v)return;renderV001(v);show('v5c-doc');}
+function renderV001(v){
+  document.getElementById('v001-body').innerHTML=
+    '<div class="v001-hdr"><div><div class="v001-title">HTML GARAGE</div><div style="font-size:.72rem;color:#3a4860;">147a Crystal Palace Rd, SE19 — Form HMW-V001</div></div><div style="text-align:right;font-size:.78rem;color:#1a2844;">CERTIFICATE OF<br>OWNERSHIP</div></div>'+
+    '<div class="v001-sec"><div class="v001-sec-hdr">Registered Solution</div>'+
+      '<div class="field-row"><span class="field-lbl">Solution:</span><span>'+esc(v.solution_name||'—')+'</span></div>'+
+      '<div class="field-row"><span class="field-lbl">CMMYY:</span><span>'+esc(v.cmmyy||'—')+'</span></div>'+
+    '</div>'+
+    '<div class="v001-sec"><div class="v001-sec-hdr">Previous Keeper</div>'+
+      '<div class="field-row"><span class="field-lbl">Declared by:</span><span>'+esc(v.prev_email||'—')+'</span></div>'+
+      '<div class="field-row"><span class="field-lbl">Programme:</span><span>'+esc(v.from_prog||'—')+'</span></div>'+
+    '</div>'+
+    '<div class="v001-sec"><div class="v001-sec-hdr">New Registered Keeper</div>'+
+      '<div class="field-row"><span class="field-lbl">Email:</span><span>'+esc(v.new_email||'—')+'</span></div>'+
+      '<div class="field-row"><span class="field-lbl">Programme:</span><span>'+esc(v.to_prog||'—')+'</span></div>'+
+    '</div>'+
+    '<div class="v001-sec"><div class="v001-sec-hdr">Transfer Details</div>'+
+      '<div class="field-row"><span class="field-lbl">Reason:</span><span>'+esc(v.reason||'—')+'</span></div>'+
+      '<div class="field-row"><span class="field-lbl">Date:</span><span>'+fmt(v.date)+'</span></div>'+
+      '<div class="field-row"><span class="field-lbl">Ref:</span><span>'+esc(v.cert_serial||'—')+'</span></div>'+
+    '</div>'+
+    '<div class="v001-cut"></div>'+
+    '<div class="v001-stub"><strong>HMW COPY — NOTIFICATION STUB</strong><br>'+
+      'Solution: '+esc(v.solution_name||'—')+'  To: '+esc(v.new_email||'—')+'<br>'+
+      'Date: '+fmt(v.date)+'  CMMYY: '+esc(v.cmmyy||'—')+'  Ref: '+esc(v.cert_serial||'—')+'<br>'+
+      '<em>V5C does not reset the certification clock. CMMYY expiry is unchanged by transfer.</em>'+
+    '</div>';
+}
+
+/* ── RETIRE ── */
+async function startRetire(){
+  show('retire');
+  if(S.role.email)document.getElementById('ret-email').value=S.role.email;
+  try{
+    var res=await tile.sqlite.execute("SELECT id,solution_name,owner_email,registered_at,risk_rating FROM registrations WHERE status!='retired' ORDER BY solution_name");
+    var sel=document.getElementById('ret-sel');
+    sel.innerHTML='<option value="">-- Select solution --</option>';
+    res.rows.forEach(function(r){var o=document.createElement('option');o.value=r.id;o.textContent=r.solution_name;o.dataset.r=JSON.stringify(r);sel.appendChild(o);});
+  }catch(e){showErr(e);}
+}
+function onRetireSel(){
+  var sel=document.getElementById('ret-sel');
+  var o=sel.options[sel.selectedIndex];
+  var info=document.getElementById('ret-info');var det=document.getElementById('ret-detail');
+  if(o&&o.dataset.r){var r=JSON.parse(o.dataset.r);det.innerHTML='Owner: '+esc(r.owner_email||'—')+' — Certified: '+fmt(r.registered_at)+' — Risk: '+riskBadge(r.risk_rating);info.style.display='';}
+  else info.style.display='none';
+}
+async function submitRetire(){
+  var sel=document.getElementById('ret-sel');
+  var reason=document.getElementById('ret-reason').value.trim();
+  var name=document.getElementById('ret-name').value.trim();
+  var email=document.getElementById('ret-email').value.trim();
+  var decl=document.getElementById('ret-decl').checked;
+  var code=document.getElementById('ret-code').value;
+  var err=document.getElementById('ret-err');err.style.display='none';
+  if(!sel.value||!reason||!name||!email){err.textContent='Complete all fields.';err.style.display='';return;}
+  if(!decl){err.textContent='Confirm the declaration.';err.style.display='';return;}
+  if(!checkCode(code)){err.textContent='Incorrect access code.';err.style.display='';return;}
+  if(!S.role.canWriteSqlite){err.textContent='Database not writable.';err.style.display='';return;}
+  var btn=document.getElementById('btn-ret');btn.disabled=true;
+  var sName=sel.options[sel.selectedIndex].textContent;
+  var t=today();
+  try{
+    await tile.sqlite.execute("UPDATE registrations SET status='retired',retired_at=?,retirement_reason=?,retirement_declared_by=? WHERE id=?",[t,reason,name+' ('+email+')',sel.value]);
+    document.getElementById('rd-name').textContent=sName;
+    document.getElementById('rd-date').textContent=fmt(t);
+    show('retire-done');
+  }catch(e){err.textContent='Failed: '+e.message;err.style.display='';}
+  finally{btn.disabled=false;}
+}
+
+/* ── THE BOARD ── */
+async function loadBoard(){
+  show('board');
+  document.getElementById('board-body').innerHTML='<div class="spin">Loading…</div>';
+  document.getElementById('prog-filter').value='';
+  try{
+    var sql=S.showRetired
+      ?"SELECT * FROM registrations ORDER BY CASE status WHEN 'retired' THEN 1 ELSE 0 END,next_due_at ASC"
+      :"SELECT * FROM registrations WHERE status!='retired' ORDER BY next_due_at ASC";
+    var res=await tile.sqlite.execute(sql);
+    S.boardRows=res.rows;
+    renderBoard(res.rows);
+  }catch(e){document.getElementById('board-body').innerHTML='<div style="color:var(--r)">Failed: '+esc(e.message)+'</div>';}
+}
+function filterBoard(){
+  var f=document.getElementById('prog-filter').value.trim().toLowerCase();
+  var rows=f?S.boardRows.filter(function(r){return(r.programme||'').toLowerCase().indexOf(f)>=0;}):S.boardRows;
+  renderBoard(rows);
+}
+function renderBoard(rows){
+  boardData={};
+  var hasAlert=rows.some(function(r){return(r.risk_rating==='HIGH'||r.risk_rating==='CRITICAL')&&r.status!=='retired';});
+  document.getElementById('board-warn').style.display=hasAlert?'':'none';
+  document.getElementById('board-count').textContent='Showing '+rows.filter(function(r){return r.status!=='retired';}).length+' active';
+  if(!rows.length){document.getElementById('board-body').innerHTML='<div style="color:var(--dim)">No solutions registered yet.</div>';return;}
+  var h='<table class="tbl"><thead><tr><th>Solution</th><th>Programme</th><th>Owner</th><th>CMMYY</th><th>Next due</th><th>Risk</th><th>Status</th><th>Actions</th></tr></thead><tbody>';
+  rows.forEach(function(r){
+    boardData[r.id]=r;
+    var ret=r.status==='retired';
+    var toolUrl=r.tool_file_key?tile.files.getUrl(r.tool_file_key,{scope:'shared'}):'#';
+    var repUrl=r.report_file_key?tile.files.getUrl(r.report_file_key,{scope:'shared'}):'#';
+    var clientFlag=r.ingests_client_data?'<span class="badge b-a" style="font-size:.6rem;margin-left:4px;">CLIENT DATA</span>':'';
+    h+='<tr class="'+(ret?'ret':'')+'">'+
+      '<td><strong>'+esc(r.solution_name)+'</strong>'+clientFlag+(r.solution_description?'<div style="color:var(--dim);font-size:.7rem;">'+esc(r.solution_description)+'</div>':'')+'</td>'+
+      '<td>'+esc(r.programme||'—')+'</td>'+
+      '<td>'+esc(r.owner_email||r.owner_name||'—')+'</td>'+
+      '<td><span style="color:var(--a);font-weight:bold;">'+esc(r.cmmyy_code||'—')+'</span></td>'+
+      '<td>'+(ret?'<span style="color:var(--dim)">'+fmt(r.retired_at||'')+'</span>':fmt(r.next_due_at))+'</td>'+
+      '<td>'+riskBadge(r.risk_rating)+'</td>'+
+      '<td>'+statusBadge(r)+'</td>'+
+      '<td style="white-space:nowrap;min-width:120px;">'+
+        '<a class="btn btn-d" style="font-size:.65rem;padding:3px 6px;display:block;margin-bottom:2px;text-align:center;" href="'+toolUrl+'" target="_blank">HTML</a>'+
+        '<a class="btn btn-d" style="font-size:.65rem;padding:3px 6px;display:block;margin-bottom:2px;text-align:center;" href="'+repUrl+'" target="_blank">Report</a>'+
+        '<button class="btn" style="font-size:.65rem;padding:3px 6px;display:block;width:100%;margin-bottom:2px;" onclick="openCertFromBoard(\''+esc(r.id)+'\')">Cert</button>'+
+        (!ret?'<button class="btn btn-a" style="font-size:.65rem;padding:3px 6px;display:block;width:100%;" onclick="startV5C(\''+esc(r.id)+'\')">V5C</button>':'')
+      +'</td></tr>';
+  });
+  h+='</tbody></table>';
+  document.getElementById('board-body').innerHTML=h;
+}
+function toggleRetired(){
+  S.showRetired=!S.showRetired;
+  document.getElementById('btn-ret-toggle').textContent=S.showRetired?'Hide retired':'Show retired';
+  loadBoard();
+}
+
+/* ── AUDIT CSV ── */
+async function exportCSV(){
+  try{
+    var res=await tile.sqlite.execute("SELECT * FROM registrations ORDER BY registered_at DESC");
+    var cols=['id','solution_name','solution_description','owner_email','certifier_email','programme','risk_rating','cmmyy_code','cert_serial','ingests_client_data','registered_at','next_due_at','status','journey_type','retired_at','retirement_reason','retirement_declared_by'];
+    var csv=cols.join(',')+'\n';
+    res.rows.forEach(function(r){csv+=cols.map(function(c){var v=String(r[c]==null?'':r[c]);if(/^[=+\-@]/.test(v))v="'"+v;return'"'+v.replace(/"/g,'""')+'"';}).join(',')+'\n';});
+    dlBlob(csv,'text/csv','hmw-audit-'+today()+'.csv');
+  }catch(e){showErr(e);}
+}
+
+/* ── BOOT ── */
+window.addEventListener('DOMContentLoaded',init);
+</script>
+</body>
+</html>

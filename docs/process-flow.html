@@ -1,0 +1,160 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+body {
+  background: #f4f2ec;
+  font-family: 'Courier New', monospace;
+  display: flex;
+  justify-content: center;
+  padding: 16px 0;
+}
+</style>
+</head>
+<body>
+<svg width="900" height="236" viewBox="0 0 900 236"
+     xmlns="http://www.w3.org/2000/svg"
+     style="display:block;background:#f4f2ec">
+
+  <defs>
+    <!-- Olive arrowhead -->
+    <marker id="ao" markerWidth="8" markerHeight="6"
+            refX="8" refY="3" orient="auto" markerUnits="userSpaceOnUse">
+      <polygon points="0,0 8,3 0,6" fill="#1c440c"/>
+    </marker>
+    <!-- Amber arrowhead -->
+    <marker id="aa" markerWidth="8" markerHeight="6"
+            refX="8" refY="3" orient="auto" markerUnits="userSpaceOnUse">
+      <polygon points="0,0 8,3 0,6" fill="#8a6008"/>
+    </marker>
+  </defs>
+
+  <!-- ── Timing label ── -->
+  <text x="450" y="14" text-anchor="middle"
+        font-family="'Courier New',monospace" font-size="10" font-weight="bold"
+        fill="#5a4818" letter-spacing="1">~ 15–30 mins end to end</text>
+
+  <!-- ── PATH A label ── -->
+  <text x="60" y="37" font-family="'Courier New',monospace"
+        font-size="9" font-weight="bold" fill="#1c440c">PATH A — Remediation (most users)</text>
+
+  <!-- ── PATH A BOXES ── -->
+
+  <!-- ① Download checklist   [x=60, y=43, w=115, h=52] -->
+  <rect x="60" y="43" width="115" height="52" rx="8"
+        fill="#fef9c0" stroke="#1c440c" stroke-width="2"/>
+  <text x="117" y="61" text-anchor="middle"
+        font-family="'Courier New',monospace" font-size="10" font-weight="bold" fill="#14100a">① DOWNLOAD</text>
+  <text x="117" y="75" text-anchor="middle"
+        font-family="'Courier New',monospace" font-size="9" fill="#14100a">checklist</text>
+  <text x="117" y="88" text-anchor="middle"
+        font-family="'Courier New',monospace" font-size="7" fill="#5a4818">Harry's → J1</text>
+
+  <!-- Arrow ①→② -->
+  <line x1="175" y1="69" x2="194" y2="69"
+        stroke="#1c440c" stroke-width="1.5" marker-end="url(#ao)"/>
+
+  <!-- ② Remediate   [x=195, y=43, w=115, h=52] -->
+  <rect x="195" y="43" width="115" height="52" rx="8"
+        fill="#fef9c0" stroke="#1c440c" stroke-width="2"/>
+  <text x="252" y="61" text-anchor="middle"
+        font-family="'Courier New',monospace" font-size="10" font-weight="bold" fill="#14100a">② REMEDIATE</text>
+  <text x="252" y="75" text-anchor="middle"
+        font-family="'Courier New',monospace" font-size="9" fill="#14100a">with Claude AI</text>
+
+  <!-- Arrow ②→③ -->
+  <line x1="310" y1="69" x2="329" y2="69"
+        stroke="#1c440c" stroke-width="1.5" marker-end="url(#ao)"/>
+
+  <!-- ③ Upload remediated   [x=330, y=43, w=115, h=52] -->
+  <rect x="330" y="43" width="115" height="52" rx="8"
+        fill="#fef9c0" stroke="#1c440c" stroke-width="2"/>
+  <text x="387" y="61" text-anchor="middle"
+        font-family="'Courier New',monospace" font-size="10" font-weight="bold" fill="#14100a">③ UPLOAD</text>
+  <text x="387" y="75" text-anchor="middle"
+        font-family="'Courier New',monospace" font-size="9" fill="#14100a">remediated file</text>
+  <text x="387" y="88" text-anchor="middle"
+        font-family="'Courier New',monospace" font-size="7" fill="#5a4818">Harry's → J2</text>
+
+  <!-- ── Dashed lane divider (left section only) ── -->
+  <!-- Clear gap for "OR" badge first -->
+  <line x1="55" y1="129" x2="450" y2="129"
+        stroke="#c8a840" stroke-width="1" stroke-dasharray="5,4" opacity="0.55"/>
+  <!-- "OR" badge cuts through the dashed line -->
+  <rect x="155" y="121" width="34" height="16" rx="4" fill="#f4f2ec"/>
+  <text x="172" y="132" text-anchor="middle"
+        font-family="'Courier New',monospace" font-size="8" font-weight="bold"
+        fill="#8a6008">OR</text>
+
+  <!-- ── PATH B label ── -->
+  <text x="330" y="152" font-family="'Courier New',monospace"
+        font-size="9" font-weight="bold" fill="#8a6008">PATH B — Already remediated</text>
+
+  <!-- ── PATH B BOX ── -->
+
+  <!-- ③b Upload direct   [x=330, y=159, w=115, h=52] -->
+  <rect x="330" y="159" width="115" height="52" rx="8"
+        fill="#fef9c0" stroke="#8a6008" stroke-width="2"/>
+  <text x="387" y="177" text-anchor="middle"
+        font-family="'Courier New',monospace" font-size="10" font-weight="bold" fill="#14100a">③b UPLOAD</text>
+  <text x="387" y="191" text-anchor="middle"
+        font-family="'Courier New',monospace" font-size="9" fill="#14100a">direct</text>
+  <text x="387" y="204" text-anchor="middle"
+        font-family="'Courier New',monospace" font-size="7" fill="#5a4818">Harry's → J3 Cert Only</text>
+
+  <!-- ── CONVERGENCE ARROWS ── -->
+
+  <!-- ③ → ④  diagonal down-right -->
+  <line x1="445" y1="69" x2="492" y2="129"
+        stroke="#1c440c" stroke-width="1.5" marker-end="url(#ao)"/>
+
+  <!-- ③b → ④  diagonal up-right -->
+  <line x1="445" y1="185" x2="492" y2="131"
+        stroke="#8a6008" stroke-width="1.5" marker-end="url(#aa)"/>
+
+  <!-- ── MERGED BOXES ── -->
+
+  <!-- ④ Scan C1–C9   [x=492, y=104, w=118, h=52] -->
+  <rect x="492" y="104" width="118" height="52" rx="8"
+        fill="#fef9c0" stroke="#1c440c" stroke-width="2"/>
+  <text x="551" y="122" text-anchor="middle"
+        font-family="'Courier New',monospace" font-size="10" font-weight="bold" fill="#14100a">④ SCAN</text>
+  <text x="551" y="136" text-anchor="middle"
+        font-family="'Courier New',monospace" font-size="9" fill="#14100a">Harry runs</text>
+  <text x="551" y="149" text-anchor="middle"
+        font-family="'Courier New',monospace" font-size="7" fill="#5a4818">C1–C9</text>
+
+  <!-- Arrow ④→⑤ -->
+  <line x1="610" y1="130" x2="629" y2="130"
+        stroke="#1c440c" stroke-width="1.5" marker-end="url(#ao)"/>
+
+  <!-- ⑤ Review before/after   [x=630, y=104, w=118, h=52] -->
+  <rect x="630" y="104" width="118" height="52" rx="8"
+        fill="#fef9c0" stroke="#1c440c" stroke-width="2"/>
+  <text x="689" y="122" text-anchor="middle"
+        font-family="'Courier New',monospace" font-size="10" font-weight="bold" fill="#14100a">⑤ REVIEW</text>
+  <text x="689" y="136" text-anchor="middle"
+        font-family="'Courier New',monospace" font-size="9" fill="#14100a">before / after</text>
+  <text x="689" y="149" text-anchor="middle"
+        font-family="'Courier New',monospace" font-size="7" fill="#5a4818">results</text>
+
+  <!-- Arrow ⑤→⑥ -->
+  <line x1="748" y1="130" x2="767" y2="130"
+        stroke="#1c440c" stroke-width="1.5" marker-end="url(#ao)"/>
+
+  <!-- ⑥ Certificate + CMMYY   [x=768, y=104, w=122, h=52] -->
+  <rect x="768" y="104" width="122" height="52" rx="8"
+        fill="#fef9c0" stroke="#1c440c" stroke-width="2"/>
+  <text x="829" y="120" text-anchor="middle"
+        font-family="'Courier New',monospace" font-size="9" font-weight="bold" fill="#14100a">⑥ CERTIFICATE</text>
+  <text x="829" y="134" text-anchor="middle"
+        font-family="'Courier New',monospace" font-size="9" fill="#14100a">+ CMMYY code</text>
+  <text x="829" y="148" text-anchor="middle"
+        font-family="'Courier New',monospace" font-size="7" fill="#5a4818">→ rename file</text>
+
+</svg>
+</body>
+</html>
